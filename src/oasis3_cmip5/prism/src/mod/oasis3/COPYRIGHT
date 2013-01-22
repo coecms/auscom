@@ -1,0 +1,41 @@
+Copyright
+=========
+
+Copyright © 2006 Centre Europeen de Recherche et Formation
+Avancee en Calcul Scientifique (CERFACS).  
+
+This software and ancillary information called OASIS3 is free
+software.  CERFACS has rights to use, reproduce, and distribute
+OASIS3. The public may copy, distribute, use, prepare derivative works and
+publicly display OASIS3 under the terms of the Lesser GNU General
+Public License (LGPL) as published by the Free Software Foundation,
+provided that this notice and any statement of authorship are
+reproduced on all copies. If OASIS3 is modified to produce derivative
+works, such modified software should be clearly marked, so as not to
+confuse it with the OASIS3 version available from CERFACS.
+
+The developers of the OASIS3 software are researchers attempting to
+build a modular and user-friendly coupler accessible to the climate
+modelling community. Although we use the tool ourselves and have made
+every effort to ensure its accuracy, we can not make any
+guarantees. We provide the software to you for free. In return,
+you--the user--assume full responsibility for use of the software. The
+OASIS3 software comes without any warranties (implied or expressed) and
+is not guaranteed to work for you or on your computer. Specifically,
+CERFACS and the various individuals involved in development and
+maintenance of the OASIS3 software are not responsible for any damage
+that may result from correct or incorrect use of this software.
+
+Reference to the software:
+==========================
+
+If you feel that your research has benefited from the use of the OASIS3
+software, we will greatly appreciate your reference to the following 
+report:
+
+Sophie Valcke, 2006:  
+OASIS3 User Guide (prism_2-5). PRISM Report Series, No 2, 6th Ed.
+http://www.prism.enes.org/Publications/Reports/all_editions/index.php#report02
+
+======================================================================
+

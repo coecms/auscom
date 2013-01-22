@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+#PBS -S /bin/tcsh
+#PBS -P p66
+#PBS -q normal
+#PBS -l walltime=00:30:00,ncpus=4,vmem=4GB
+#PBS -N cice41test
+#PBS -wd
+
+export F_RECLUNIT=BYTE
+
+stamp=`date -u '+%y%m%d%H%M%S'`
+export ICE_LOG_FILE=ice.log.${stamp}
+
+export MPI_DSM_DISTRIBUTE
+mpirun -np 4 ./cice  > $ICE_LOG_FILE 2>&1
+
+exit 0
+

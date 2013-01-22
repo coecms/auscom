@@ -1,0 +1,459 @@
+\newpage
+\chapter{The OASIS3 configuration file {\it namcouple}}
+\label{sec_namcouple}
+
+The OASIS3 configuration file {\em namcouple} contains, below
+pre-defined keywords, all user's
+defined information necessary to configure a particular coupled
+run. The {\it namcouple} is a text file with the following
+characteristics:
+
+\begin{itemize}
+\item the keywords used to separate the information
+can appear in any order;
+\item the number of blanks between two character strings is
+non-significant; 
+\item all lines beginning with \# are ignored and considered as
+comments.
+\item {\bf blank lines are not allowed.}
+\end{itemize}
+\vspace*{0.5cm}
+
+The first part of {\em namcouple } is devoted to configuration of
+general parameters such as the number of models involved in the
+simulation, the number of fields, the communication technique, etc.
+The second part gathers specific information on each coupling or I/O
+field, e.g. their coupling period, the list of transformations or
+interpolations to be performed by OASIS3 and their associated
+configuring lines (described in more details in section
+\ref{sec_transformations}), etc.
+
+\vspace*{0.5cm}
+
+In the next sections, a simple {\it namcouple} example is given and
+all configuring parameters are described. The additional lines
+containing the different parameters required for each transformation
+are described in section \ref{sec_transformations}. An example of a
+realistic {\em namcouple} can be found in directory 
+{\tt
+/prism/util/running\break/toyclim/input/namcouple}.
+% XXX and {\tt
+%/prism/util/running\break/adjunct\_files/oasis3/namcouple\_toyclim\_use}.
+
+\section{An example of a simple {\it namcouple}}
+\label{subsec_examplenamcouple}
+
+The following simple {\it namcouple} configures a run in which an
+ocean, an atmosphere and an atmospheric chemistry models are
+coupled. The ocean provides only the SOSSTSST field to the atmosphere,
+which in return provides the field CONSFTOT to the ocean. One field
+(COSENHFL) is exchanged directly from the atmosphere to the
+atmospheric chemistry, and one field (SOALBEDO) is read from a file by
+the ocean.
+
+\begin{verbatim}
+
+######################################################################
+# First section
+#
+ $SEQMODE
+    1
+#
+ $CHANNEL
+    MPI2    NOBSEND
+    1    1   arg1
+    3    1   arg2
+    3    1   arg3            
+#
+ $NFIELDS
+    4
+#
+ $JOBNAME
+    JOB
+#
+ $NBMODEL
+    3  ocemod   atmmod  chemod  55  70   99 
+#
+ $RUNTIME
+    432000
+#
+ $INIDATE
+    00010101
+#
+ $MODINFO
+    NOT
+#
+ $NLOGPRT
+   2
+#
+ $CALTYPE
+   1
+#
+######################################################################
+# Second section 
+#
+ $STRINGS
+#
+# Field 1
+#
+ SOSSTSST SISUTESU 1 86400  5  sstoc.nc  EXPORTED
+ 182  149  128  64  toce  atmo   LAG=+14400  SEQ=+1
+ P 2 P 0
+ LOCTRANS CHECKIN MOZAIC  BLASNEW CHECKOUT 
+#
+  AVERAGE 
+  INT=1
+  at31topa   91    2   48
+  CONSTANT     273.15 
+  INT=1
+#
+# Field 2
+#
+ CONSFTOT SOHEFLDO 6 86400  7   flxat.nc  EXPORTED
+ atmo   toce  LAG=+14400  SEQ=+1
+ P 0 P 2
+ LOCTRANS  CHECKIN  SCRIPR CHECKOUT
+#
+  ACCUMUL 
+  INT=1
+  CONSERV  LR  SCALAR  LATLON   10  FRACAREA   FIRST
+  INT=1
+#
+# Field 
+#
+ COSENHFL  SOSENHFL  37  86400   1  flda3.nc  IGNOUT 
+ atmo   atmo LAG=+7200  SEQ=+1
+ LOCTRANS
+ AVERAGE
+#
+# Field 4
+#
+ SOALBEDO SOALBEDO  17  86400  0  SOALBEDO.nc  INPUT
+#
+#####################################################################
+\end{verbatim}
+
+%section{An example of a simple {\em namcouple}}
+
+\section{ First section of {\it namcouple} file}
+\label{subsec_namcouplefirst}
+
+The first section of {\it namcouple } uses some predefined keywords
+prefixed by the \$ sign to locate the related information. The
+\$ sign must be in the second column. The first ten keywords
+are described hereafter:
+
+\begin{itemize}
+
+\item {\tt \$SEQMODE}: On the line below this keyword is the maximum number of fields that
+  have to be, at one particular coupling timestep,
+  necessarily exchanged sequentially in a given order.  For {\tt
+  \$SEQMODE} $\ge 1$, the position of each coupling field in the sequence has to be
+  given by its SEQ index (see below and also section
+  \ref{subsubsec_Algoritms}).
+
+\item {\tt \$CHANNEL}: On the line below this keyword is the
+communication technique chosen. Choices are {\tt MPI1} or {\tt MPI2}
+for the CLIM communication technique and related PSMILe library, using
+{\tt MPI1} or {\tt MPI2} message passing.  To run OASIS3 as an
+interpolator only, put {\tt NONE} (see also section
+\ref{subsec_interpolator}). 
+The communication techniques available in previous OASIS version, i.e.
+{\tt SIPC}, {\tt PIPE}, or {\tt GMEM} should still work but are not
+officially supported anymore and were not tested.
+
+To use the {\tt CLIM/MPI2} communication technique, the lines below {\tt
+  \$CHANNEL} are, e.g. for 3 models:
+\begin{verbatim} 
+$CHANNEL 
+MPI2 NOBSEND
+1    1  arg1 
+3    1  arg2
+3    1  arg3 
+\end{verbatim}
+where {\tt MPI2} is the message passing used in CLIM and PSMILe, and
+{\tt NOBSEND} indicates that standard blocking send {\tt MPI\_Send}
+should be used in place of the buffered {\tt MPI\_BSend} to send the
+coupling fields.\footnote{Use the standard blocking send {\tt
+MPI\_Send} if the coupling fields are necessarily sent and received in
+the same order, or on platforms for which {\tt MPI\_Send} is
+implemented with a mailbox (e.g. VPPs; in this case, make sure
+that the size of the mailbox is sufficient). Use the less efficient
+buffered send {\tt MPI\_BSend} on platforms for which {\tt
+MPI\_Send} is not implemented with a mailbox if the
+coupling fields are not sent and received in the same order.
+Note that below the call to {\tt prism\_enddef\_proto}, the PSMILe
+tests whether or not the model has already attached to an MPI
+buffer. If it is the case, the PSMILe detaches from the buffer, adds
+the size of the pre-attached buffer to the size needed for the
+coupling exchanges, and reattaches to an MPI buffer. The model own
+call to {\tt MPI\_Buffer\_Attach} must therefore be done before the
+call to {\tt prism\_enddef\_proto}. Furthermore, the model is not
+allowed to call {\tt MPI\_BSend} after the call to {\tt
+prism\_terminate\_proto}, as the PSMILe definitively detaches from the
+MPI buffer in this routine. See the example in the toyatm model in
+{\tt prism/src/mod/toyatm/src} }
+
+If {\tt NOBSEND} is not specified, the buffered send {\tt MPI\_BSend}
+will be used.
+
+The following lines (one line per model listed on the {\tt \$NBMODEL}
+line) indicate for each model the total number of processes, the
+number of processes implied in the coupling, and possibly launching
+arguments. Here the first model runs on one process which is of course
+implied in the coupling and the argument passed to the model is
+"arg1"; the second and third models run on 3 processes but only one
+process is implied in the coupling (i.e. exchanging information with
+OASIS3 main process), and the argument passed to the models are
+respectively ``arg2" and ``arg3''.
+
+To use the {\tt CLIM/MPI1} communication technique, the {\tt
+  \$CHANNEL} lines are are as for {\tt MPI2} except that {\tt MPI2} is
+replaced by {\tt MPI1} and there is no launching
+arguments\footnote{With MPI1, models have to be started by the user in
+  a pseudo-MPMD mode in the order they are introduced in the {\it
+    namcouple}. The way to do this depends on the computing platform.
+  With MPI1, OASIS3 main process and the component models
+  automatically share the same MPI\_COMM\_WORLD communicator; in this
+  communicator OASIS3 main process is assumed to have rank 0 and the
+  other component models are assumed to have ranks in the order of
+  which they are introduced in namcouple. If this is not the case, a
+  deadlock may occur.}.
+
+\item {\tt \$NFIELDS}: On the line below this keyword is the total
+number of fields exchanged and described in the second part of
+the {\it namcouple}.
+
+\item {\tt \$JOBNAME}: On the line below this keyword is a {\tt
+CHARACTER$\star$3} or {\tt CHARACTER$\star$4} variable giving an
+acronym for the given simulation.
+
+\item {\tt \$NBMODEL}: On the line below this keyword is the number of
+models running in the given experiment followed by {\tt
+CHARACTER$\star$6} variables giving their names. Then the user may
+indicate the maximum Fortran unit number used by the models. In the
+example, Fortran units above 55, 70, and 99 are free for respectively
+the ocean, atmosphere, and atmospheric chemistry models. If no
+maximum unit numbers are indicated, OASIS3 will suppose that units
+above 1024 are free. If {\tt \$CHANNEL}
+is {\tt NONE}, {\tt \$NBMODEL} has to be 0 and there should be no
+model name and no unit number.
+
+\item {\tt \$RUNTIME}: On the line below this keyword is the total
+simulated time of the run, expressed in seconds. If {\tt \$CHANNEL}
+is {\tt NONE}, {\tt \$RUNTIME} has to be the number of time occurrences
+of the field to interpolate from the restart file. 
+
+\item {\tt \$INIDATE}: On the line below this keyword is the initial
+  date of the run. The format is {\tt YYYYMMDD}. This date is important only
+  for the {\tt FILLING} transformation and for printing information in
+  OASIS3 log file {\it cplout}.
+
+\item {\tt \$MODINFO}: If coupling restart files are binary files (see
+  section \ref{subsec_restartdata}), the line below this keyword
+  indicates if a header is encapsulated or not: it can be {\tt
+  YES} or {\tt NOT}.
+ 
+\item {\tt \$NLOGPRT}: The line below this keyword refers to the
+  amount of information that will be written to the OASIS3 log file
+  {\it cplout} during the run. With 0, there is practically no output
+  written to the cplout; with 1, only some general information on the
+  run, the header of the main routines, and the names of the fields
+  when treated appear in the {\it cplout}.  Finally, with 2, the full output
+  is generated.
+
+\item {\tt \$CALTYPE}: This new keyword gives the type of calendar
+  used. For now, the calendar type is important only if {\tt FILLING}
+  analysis is used for a coupling field in the run and for printing
+  information in OASIS3 log file {\it cplout}. Below this keyword, a
+  number (0, 1 or n ) must be indicated by the user:
+  \begin{itemize}
+  \item 0 : a 365 day calendar (no leap year) 
+  \item 1 : a 365 or 366 (leap years) day calendar A year is a leap
+  year if it can be divided by 4; however if it can be divided by 4
+  and 100, it is not a leap year; furthermore, if it can be divided by
+  4, 100 and 400, it is a leap year.
+  \item n :  $n \ge 1$ day month calendar. 
+  \end{itemize}
+
+\end{itemize}
+
+%{Description of {\it namcouple} first section}
+
+\section{Second section of {\it namcouple} file }
+\label{subsec_namcouplesecond}
+
+The second part of the {\it namcouple}, starting after the keyword
+{\tt \$STRINGS}, contains coupling information for each coupling or
+I/O field.  Its format depends on the field status given by the last
+entry on the field first line ({\tt EXPORTED}, {\tt IGNOUT} or {\tt
+INPUT} in the example above). The field status may be the following
+({\tt AUXILARY} and {\tt EXPORTED} are supported by all communication
+techniques, while the others are supported only by the PSMILe i.e. the
+{\tt CLIM/MPI1} or {\tt CLIM/MPI2} communication technique):
+
+\begin{itemize}
+\item {\tt AUXILARY}: sent by the source model, received and used by
+  OASIS3 main process for the transformation of other fields.
+\item {\tt EXPORTED}: exchanged between component models and
+  transformed by OASIS3 main process.
+\item {\tt EXPOUT}: exchanged, transformed and also written to two
+  output files, one before the sending action in the source model
+  below the {\tt prism\_put\_proto} call, and one after the receiving
+  action in the target model below the {\tt prism\_get\_proto} call.
+\item {\tt IGNORED}: exchanged directly between the component models
+  without being transformed by OASIS3 main process. The grid and
+  partitioning of the source and target models have to be
+  identical.
+\item {\tt IGNOUT}: exchanged directly between the component models
+  without being transformed by OASIS3 main process and written to two
+  output files, one before the sending action in the source model
+  below the {\tt prism\_put\_proto} call, and one after the receiving
+  action in the target model below the {\tt prism\_get\_proto} call.
+  The grid and partitioning of the source and target models have to be
+  identical.
+\item {\tt INPUT}: simply read in from the input file by the target
+  model PSMILe below the {\tt prism\_get\_proto} call at appropriate
+  times corresponding to the input period indicated by the user in the
+  {\it namcouple}. See section
+  \ref{subsec_inputdata} for the format of the input file.
+\item {\tt OUTPUT}: simply written out to an output file by the source
+  model PSMILe below the {\tt prism\_put\_proto} call at appropriate
+  times corresponding to the output period indicated by the user in
+  the {\it namcouple}. The name of the output file (one per field) is
+  automatically built based on the field name and initial date of the
+  run ({\tt \$INIDATE}).
+
+\end{itemize}
+
+\subsection{Second section of {\it namcouple} for {\tt EXPORTED}, {\tt
+      AUXILARY} and {\tt EXPOUT} fields}
+\label{subsubsec_secondEXPORTED}
+
+  The first 3 lines for fields with status {\tt EXPORTED}, {\tt
+  AUXILARY} and {\tt EXPOUT} are as follows:
+  \begin{verbatim}
+   SOSSTSST SISUTESU 1 86400  5  sstoc.nc  sstat.nc EXPORTED
+   182  149    128  64  toce  atmo   LAG=+14400 SEQ=+1
+   P 2 P 0 
+  \end{verbatim}
+  where the different entries are:
+    \begin{itemize}
+      \item Field first line:
+        \begin{itemize}
+        \item {\tt SOSSTSST} : symbolic name for the field in the
+              source model ({\tt CHARACTER*8}). It has to match the
+              argument {\tt name} of the corresponding field
+              declaration in the source model; see {\tt
+              prism\_def\_var\_proto} in section
+              \ref{subsubsec_Declaration}.
+        \item {\tt SISUTESU} : symbolic name for the field in the
+              target model ({\tt CHARACTER*8}).  It has to match the
+              argument {\tt name} of the corresponding field
+              declaration in the target model; see {\tt
+              prism\_def\_var\_proto} in section
+              \ref{subsubsec_Declaration}.
+        \item 1 : index in auxiliary file cf\_name\_table.txt used by OASIS3 and PSMILe to identify corresponding CF standard name and units (see \ref{subsec_cfnametable}).
+        \item 86400 : coupling and/or I/O period for the field, in
+        seconds. (If {\tt \$CHANNEL} is {\tt NONE}, put ``1''.)
+        \item 5 : number of transformations to be performed on this field.  
+        \item sstoc.nc : name of the coupling restart file for the
+  	  field ({\tt CHARACTER*8}); it may be a binary of netCDF file (for
+	  more detail, see section \ref{subsec_restartdata}).
+        \item sstat.nc : name of the field output file, may be indicated for
+	  {\tt NONE} (and {\tt PIPE}) communication techniques only. It
+	  may be a binary of netCDF file (see section
+	  \ref{subsec_restartdata}).
+        \item {\tt EXPORTED} : field status.
+        \end{itemize}
+      \item Field second line:
+        \begin{itemize}
+        \item 182 : number of points for the source grid first
+        dimension (optional if a netCDF coupling restart file is used). 
+        \item 149 : number of points for the source grid second
+        dimension (optional if a netCDF coupling restart file is used).    
+        \item 128 : number of points for the target grid first
+        dimension (optional if a netCDF coupling restart file is used). 
+        \item 64 : number of points for the target grid second
+        dimension (optional if a netCDF coupling restart file is used).  
+        \item toce : prefix of the source grid name in grid data files (see section
+        \ref{subsec_griddata}) ({\tt CHARACTER*4})
+        \item atmo : prefix of the target grid name in grid data files
+        ({\tt CHARACTER*4})
+        \item {\tt LAG=+14400}: optional lag index for the field
+        expressed in seconds ({\tt CLIM/MPI1} or {\tt CLIM/MPI2}
+        communication technique only, see section
+        \ref{subsubsec_Algoritms}). Note that in mode NONE a LAG has
+        to be defined so that the input file is opened initially.
+        \item {\tt SEQ=+1}: optional sequence index for the field
+        ({\tt CLIM/MPI1} or {\tt CLIM/MPI2} communication technique
+        only, see section \ref{subsubsec_Algoritms}).
+        \end{itemize}
+      \item Field third line
+        \begin{itemize}
+         \item P : source grid first dimension characteristic
+            (`P': periodical; `R': regional).
+         \item 2 : source grid first dimension number of overlapping grid points.
+         \item P : target grid first dimension characteristic (`P':
+         periodical; `R': regional).
+         \item 0 : target grid first dimension number of overlapping grid points.
+        \end{itemize}
+     
+      \end{itemize}
+    
+  The fourth line gives the list of transformations to be performed
+  for this field. There is then one or more additional configuring lines
+  describing some parameters for each transformation. These
+  additional lines are described in more details in the section
+  \ref{sec_transformations}.
+
+\subsection{Second section of {\it namcouple} for {\tt
+  IGNORED}, {\tt IGNOUT}, and {\tt OUTPUT} fields}
+\label{subsubsec_secondIGNORED}
+  The first 2 lines for fields with status {\tt IGNORED} or {\tt
+  IGNOUT} or {\tt OUTPUT} are as follows:
+  \begin{verbatim}
+  COSENHFL SOSENHFL 37 86400 1 flda3.nc IGNOUT 
+  atmo   toce LAG=+7200 SEQ=+1\end{verbatim}where the different
+  entries are as for {\tt EXPORTED} fields, except that there is no
+  output file name on the first line.
+
+  For {\tt OUTPUT} fields, there is no target model and therefore no
+  target symbolic name; the source symbolic name must be repeated
+  twice on the field first line. Also, there is no coupling restart
+  file name ({\tt flda3.nc} here), no {\tt LAG} index and no {\tt SEQ}
+  index.
+
+  For {\tt IGNORED} fields, the name used in the coupling restart file
+  (if any) must be the target symbolic name.
+
+\vspace*{0.5cm}
+
+  The third line is {\tt LOCTRANS} if this transformation is chosen
+  for the field. Note that {\tt LOCTRANS} is the only transformation
+  supported for {\tt IGNORED}, {\tt IGNOUT} and {\tt OUTPUT} fields
+  (as it is performed directly in the PSMILe below the {\tt
+  prism\_put\_proto} call). If {\tt LOCTRANS} is chosen, a fourth line
+  giving the name of the time transformation is required. For more
+  detail on {\tt LOCTRANS}, see section \ref{subsec_timetrans}.
+
+\subsection{Second section of {\it namcouple} for {\tt
+  INPUT} fields}
+\label{subsubsec_secondINPUT}
+
+  The first and only line for fields with status {\tt INPUT} is:
+
+  \begin{verbatim}
+  SOALBEDO SOALBEDO  17  86400  0  SOALBEDO.nc  INPUT\end{verbatim} where the different entries are:
+  \begin{itemize}
+  \item  {\tt SOALBEDO}: symbolic name for the field in the target
+  model ({\tt CHARACTER*8} repeated twice)
+  \item 17:  index in auxiliary file cf\_name\_table.txt (see above for EXPORTED fields)
+  \item 86400: input period in seconds
+  \item 0: number of transformations (always 0 for {\tt INPUT} fields)
+  \item {\tt SOALBEDO.nc}: {\tt CHARACTER*32} giving the input file
+  name (for more detail on its format, see section
+  \ref{subsec_inputdata})
+  \item {\tt INPUT}: field status.
+  \end{itemize}
+

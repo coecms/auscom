@@ -1,0 +1,86 @@
+#! /bin/csh -f
+
+### Change these to your own site and user directory! 
+### You will need to create a Makefile Macro in bld/ 
+
+# Set AusCOM home:
+setenv AusCOMHOME $cwd:h:h:h
+
+### Platform and its architecture ($HOST = d2 or tx701 (mawson) )
+# setenv SITE ${HOST}.nci.org.au
+setenv SITE vayu1.nci.org.au
+setenv ARCH `uname -s`
+setenv ARCH $ARCH.$SITE
+echo ARCH: $ARCH
+
+### Use MPI1 or MPI2 ?
+setenv CHAN MPI1
+
+# Users must ensure the correct environment file exists for their platform.
+set platform = vayu.nci.org.au
+#source ${AusCOMHOME}/bin/environs.$platform.1.3.3  # environment variables and loadable modules
+source ${AusCOMHOME}/bin/environs.$platform  # environment variables and loadable modules
+
+#endif
+#-------------------------------------------------------------------------------
+ 
+### Location of AusCOM system
+setenv SYSTEMDIR $AusCOMHOME
+echo SYSTEMDIR: $SYSTEMDIR
+
+### Location of this data ocean model (source)
+setenv SRCDIR $SYSTEMDIR/submodels/matm
+echo SRCDIR: $SRCDIR
+
+### Location and names of coupling libraries
+#setenv CPLLIBDIR $SYSTEMDIR/submodels/oasis3_prism_2-5/prism/Linux/lib
+setenv CPLLIBDIR $SYSTEMDIR/submodels/oasis3/prism/Linux/lib
+setenv CPLLIBS '$(CPLLIBDIR)/libpsmile.$(CHAN).a'
+#echo CPLLIBS: ${CPLLIBS}
+
+### Location of coupling inclusions
+#setenv CPLINCDIR $SYSTEMDIR/submodels/oasis3_prism_2-5/prism/Linux/build/lib
+setenv CPLINCDIR $SYSTEMDIR/submodels/oasis3/prism/Linux/build/lib
+setenv CPL_INCS '-I$(CPLINCDIR)/psmile.$(CHAN)'
+#echo CPL_INCS: ${CPL_INCS}
+
+### Grid resolution
+setenv GRID nt62
+setenv RES 192x94
+
+### Location and name of the generated exectuable 
+setenv BINDIR $AusCOMHOME/bin
+setenv EXE matm_${CHAN}.VAYU_${GRID}
+
+### Where this model is compiled
+setenv OBJDIR $SRCDIR/compile/build_MPI1_${GRID}
+if !(-d $OBJDIR) mkdir -p $OBJDIR
+
+
+set NXGLOB = `echo $RES | sed s/x.\*//`
+set NYGLOB = `echo $RES | sed s/.\*x//`
+echo NXGLOB: $NXGLOB, NYGLOB: $NYGLOB
+
+setenv CBLD $SRCDIR/bld
+echo CBLD: $CBLD
+
+cp -f $CBLD/Makefile.std $CBLD/Makefile
+
+cd $OBJDIR
+
+### List of source code directories (in order of importance).
+cat >! Filepath << EOF
+$SRCDIR/source
+EOF
+
+cc -o makdep $CBLD/makdep.c                      || exit 2
+
+gmake VPFILE=Filepath EXEC=$BINDIR/$EXE \
+           NXGLOB=$NXGLOB NYGLOB=$NYGLOB \
+      -f  $CBLD/Makefile MACFILE=$CBLD/Macros.$ARCH || exit 2
+
+cd ..
+
+echo "x    $NXGLOB"
+echo "y    $NYGLOB"
+

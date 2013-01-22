@@ -1,0 +1,202 @@
+##############################################################################_$(PLATFORM)
+#This is the top makefile for compiling OASIS3 with libraries and the
+#toymodel toyclim.  Platform dependent settings, compiler options, cpp
+#keys, choice of library mppio, paths and other stuff has to be set in
+#an include file indicated in make.inc.
+# 
+# default   : Compiling libraries and OASIS3
+# toyclim   : Compiling libraries, OASIS3 and toyclim
+# clean     : Clean oasis3 and toyclim without libraries
+# realclean : Clean oasis3, toyclim and libraries
+#
+#######
+include make_$(PLATFORM)
+#
+SHELL = /bin/sh
+MAKEf = $(MAKE) -f TopMakefileOasis3
+#
+# Defining path for FORTRAN and C sources
+LIBSRC  = $(PRISMHOME)/src/lib
+MODSRC  = $(PRISMHOME)/src/mod
+#
+COUPLE = oasis3
+#
+# Log and error files for compiling
+LOG = $(PRISMHOME)/src/mod/oasis3/util/make_dir/COMP.log
+ERR = $(PRISMHOME)/src/mod/oasis3/util/make_dir/COMP.err
+#
+#######
+#
+default:
+	rm -f $(LOG) $(ERR)
+	$(MAKEf) makedirs
+	$(MAKEf) makemppio
+	$(MAKEf) makelibs
+	$(MAKEf) makepsmile
+	$(MAKEf) makeoasis
+#
+toyclim:
+	rm -f $(LOG) $(ERR)
+	$(MAKEf) makedirs
+	$(MAKEf) makedirstoyclim
+	$(MAKEf) makemppio
+	$(MAKEf) makelibs
+	$(MAKEf) makepsmile
+	$(MAKEf) makeoasis
+	$(MAKEf) maketoyclim
+#
+clean:
+	$(MAKEf) cleanmod
+#
+realclean:
+	$(MAKEf) cleanlibs
+	$(MAKEf) cleanmod
+#
+# Rules for creating build, library and binary directories
+#
+makedirs:
+	@mkdir -p $(ARCHDIR)/build/lib/mpp_io
+	@mkdir -p $(ARCHDIR)/build/lib/clim.$(CHAN)
+	@mkdir -p $(ARCHDIR)/build/lib/anaisg
+	@mkdir -p $(ARCHDIR)/build/lib/anaism
+	@mkdir -p $(ARCHDIR)/build/lib/fscint
+	@mkdir -p $(ARCHDIR)/build/lib/scrip
+	@mkdir -p $(ARCHDIR)/build/lib/psmile.$(CHAN)
+	@mkdir -p $(ARCHDIR)/build/mod/oasis3.$(CHAN)
+	@mkdir -p $(ARCHDIR)/bin
+	@mkdir -p $(ARCHDIR)/lib
+	@mkdir -p $(ARCHDIR)/lib/oasis3
+#
+makedirstoyclim:
+	@mkdir -p $(ARCHDIR)/build/mod/toyatm.$(CHAN)
+	@mkdir -p $(ARCHDIR)/build/mod/toyoce.$(CHAN)
+	@mkdir -p $(ARCHDIR)/build/mod/toyche.$(CHAN)
+	@mkdir -p $(ARCHDIR)/lib/toyatm
+	@mkdir -p $(ARCHDIR)/lib/toyoce
+	@mkdir -p $(ARCHDIR)/lib/toyche
+#
+# Rules for compiling mppio library
+# 
+makemppio:
+	echo "=> Compiling library mppio"
+	(cd $(ARCHDIR)/build/lib/mpp_io ; cp -f $(LIBSRC)/mpp_io/src/Makefile .;\
+        $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) )
+#
+# Rules for compiling the libraries anaisg, anaism, fscint, scrip, clim and psmile
+#
+makelibs:
+	@echo "=> Compiling library clim"
+	(cd $(ARCHDIR)/build/lib/clim.$(CHAN); cp -f $(LIBSRC)/clim/src/Makefile .;\
+         $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) )
+	@echo "=> Compiling library anaisg"
+	(cd $(ARCHDIR)/build/lib/anaisg; cp -f $(LIBSRC)/anaisg/src/Makefile .;\
+         $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) )
+	@echo "=> Compiling library anaism"
+	(cd $(ARCHDIR)/build/lib/anaism; cp -f $(LIBSRC)/anaism/src/Makefile .;\
+         $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) )
+	@echo "=> Compiling library fscint"
+	(cd $(ARCHDIR)/build/lib/fscint; cp -f $(LIBSRC)/fscint/src/Makefile .;\
+         $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) )
+	@echo "=> Compiling library scrip"
+	(cd $(ARCHDIR)/build/lib/scrip; cp -f $(LIBSRC)/scrip/src/Makefile .;\
+         $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) )
+
+makepsmile:
+	@echo "=> Compiling library psmile"
+	(cd $(ARCHDIR)/build/lib/psmile.$(CHAN) ; \
+         cp -f $(LIBSRC)/psmile/src/Makefile . ; $(modifmakefile) ; \
+         $(MAKE) all 1>> $(LOG) 2>> $(ERR) )
+#
+# Rules for compiling oasis3
+#
+makeoasis:
+	@echo "=> Compiling OASIS3"
+	(cd $(ARCHDIR)/build/mod/oasis3.$(CHAN); cp -f $(MODSRC)/oasis3/src/Makefile .;\
+         $(addvars0) ; $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) ) 
+#
+# Rules for compiling the toyclim
+#
+maketoyclim:
+	@echo "=> Compiling model toyatm"
+	(cd $(ARCHDIR)/build/mod/toyatm.$(CHAN); cp -f $(MODSRC)/toyatm/src/Makefile .;\
+            $(addvars1) ; $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) )
+	@echo "=> Compiling model toyoce"
+	(cd $(ARCHDIR)/build/mod/toyoce.$(CHAN); cp -f $(MODSRC)/toyoce/src/Makefile .;\
+            $(addvars2) ; $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) ) 
+	@echo "=> Compiling model toyche"
+	(cd $(ARCHDIR)/build/mod/toyche.$(CHAN); cp -f $(MODSRC)/toyche/src/Makefile .;\
+            $(addvars3) ; $(modifmakefile) ; $(MAKE) all 1>> $(LOG) 2>> $(ERR) ) 
+#
+# Rules for cleaning
+#
+cleanlibs:
+	@echo cleaning oasis3 libraries
+	rm -f $(ARCHDIR)/build/lib/mpp_io/*
+	rm -f $(ARCHDIR)/build/lib/anaisg/*
+	rm -f $(ARCHDIR)/build/lib/anaism/*
+	rm -f $(ARCHDIR)/build/lib/fscint/*
+	rm -f $(ARCHDIR)/build/lib/scrip/*
+	rm -f $(ARCHDIR)/build/lib/clim.$(CHAN)/*
+	rm -f $(ARCHDIR)/build/lib/psmile.$(CHAN)/*
+	rm -f $(ARCHDIR)/lib/libmppio.a
+	rm -f $(ARCHDIR)/lib/libanaisg.a
+	rm -f $(ARCHDIR)/lib/libanaism.a
+	rm -f $(ARCHDIR)/lib/libfscint.a
+	rm -f $(ARCHDIR)/lib/libscrip.a
+	rm -f $(ARCHDIR)/lib/libclim.$(CHAN).a
+	rm -f $(ARCHDIR)/lib/libpsmile.$(CHAN).a
+#
+cleanmod:
+	rm -f $(LOG) $(ERR)
+	@echo cleaning oasis3 and toyclim
+	rm -f $(ARCHDIR)/build/mod/oasis3.$(CHAN)/*
+	rm -f $(ARCHDIR)/build/mod/toyatm.$(CHAN)/*
+	rm -f $(ARCHDIR)/build/mod/toyoce.$(CHAN)/*
+	rm -f $(ARCHDIR)/build/mod/toyche.$(CHAN)/*
+	rm -f $(ARCHDIR)/lib/oasis3/liboasis3.$(CHAN).a
+	rm -f $(ARCHDIR)/lib/toyatm/libtoyatm.$(CHAN).a
+	rm -f $(ARCHDIR)/lib/toyoce/libtoyoce.$(CHAN).a
+	rm -f $(ARCHDIR)/lib/toyche/libtoyche.$(CHAN).a
+	rm -f $(ARCHDIR)/bin/oasis3.$(CHAN).x
+	rm -f $(ARCHDIR)/bin/toyatm.$(CHAN).x
+	rm -f $(ARCHDIR)/bin/toyoce.$(CHAN).x
+	rm -f $(ARCHDIR)/bin/toyche.$(CHAN).x
+#
+#
+#
+## Some rules to modify/add variables in makefiles
+#
+modifmakefile =	( echo 'include $(PRISMHOME)/src/mod/oasis3/util/make_dir/make_$(PLATFORM)' \
+                         > infile; cat Makefile >> infile ; cp -f infile Makefile )
+#
+addvars0 = ( echo 'MOD = oasis3' > infile; echo 'MAINPRG = couple'>>infile; \
+      echo 'MODEL_DIR=$$(MOD)' >>infile; echo 'EXEC=$$(MOD).$$(CHAN)' >> infile; \
+      echo 'MODLIB=$$(EXEC)' >> infile; echo 'SRC=src' >> infile; \
+      echo 'DEPLIBS=$$(ARCHDIR)/lib/libanaisg.a $$(ARCHDIR)/lib/libanaism.a $$(ARCHDIR)/lib/libfscint.a $$(ARCHDIR)/lib/libscrip.a $$(ARCHDIR)/lib/libclim.$(CHAN).a' >> infile; \
+      echo 'LIBS=$$(ARCHDIR)/lib/$$(MOD)/lib$$(MOD).$$(CHAN).a $$(DEPLIBS) $$(FLIBS)' \
+            >> infile; cat Makefile >> infile ; cp -f infile Makefile)
+#
+addvars1 = ( echo 'MOD = toyatm' > infile; echo 'MAINPRG = atm'>>infile; \
+      echo 'MODEL_DIR=$$(MOD)' >>infile; echo 'EXEC=$$(MOD).$$(CHAN)' >> infile; \
+      echo 'MODLIB=$$(EXEC)' >> infile; echo 'SRC=src' >> infile; \
+      echo 'DEPLIBS=$$(LIBPSMILE)' >> infile; \
+      echo 'LIBS=$$(ARCHDIR)/lib/$$(MOD)/lib$$(MOD).$$(CHAN).a $$(DEPLIBS) $$(FLIBS)' \
+            >> infile; cat Makefile >> infile ; cp -f infile Makefile)
+#
+addvars2 = ( echo 'MOD = toyoce' > infile; echo 'MAINPRG = oce'>>infile; \
+      echo 'MODEL_DIR=$$(MOD)' >>infile; echo 'EXEC=$$(MOD).$$(CHAN)' >> infile; \
+      echo 'MODLIB=$$(EXEC)' >> infile; echo 'SRC=src' >> infile; \
+      echo 'DEPLIBS=$$(LIBPSMILE)' >> infile; \
+      echo 'LIBS=$$(ARCHDIR)/lib/$$(MOD)/lib$$(MOD).$$(CHAN).a $$(DEPLIBS) $$(FLIBS)' \
+            >> infile; cat Makefile >> infile ; cp -f infile Makefile)
+#
+addvars3 = ( echo 'MOD = toyche' > infile; echo 'MAINPRG = che'>>infile; \
+      echo 'MODEL_DIR=$$(MOD)' >>infile; echo 'EXEC=$$(MOD).$$(CHAN)' >> infile; \
+      echo 'MODLIB=$$(EXEC)' >> infile; echo 'SRC=src' >> infile; \
+      echo 'DEPLIBS=$$(LIBPSMILE)' >> infile; \
+      echo 'LIBS=$$(ARCHDIR)/lib/$$(MOD)/lib$$(MOD).$$(CHAN).a $$(DEPLIBS) $$(FLIBS)' \
+            >> infile; cat Makefile >> infile ; cp -f infile Makefile)
+#
+#
+#
+########################################################################################

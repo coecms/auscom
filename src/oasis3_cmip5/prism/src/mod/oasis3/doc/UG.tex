@@ -1,0 +1,78 @@
+%
+% OASIS 3.0 doc
+% -------------
+%
+% 2002
+%
+% - pagination -
+% 
+%\documentstyle[jeep,12pt,psfig]{article}
+\documentclass[12pt]{article}
+\usepackage{graphicx} 
+\setlength{\topmargin}{0.0cm}
+\setlength{\oddsidemargin}{-.2cm}
+\setlength{\textheight}{24.0cm}
+\setlength{\textwidth}{15.5cm}
+\setlength{\headsep}{.0in}
+%\setlength{\footheight}{.0in}
+%\setlength{\parindent}{.0in}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{0pt}
+\lhead{}
+\rhead{}
+\cfoot{}
+\chead{}
+\rfoot{CERFACS TR/CMGC/04/68}
+%\rfoot{PRISM Project Report XXXX}
+%\lfoot{\footnotesize PRISM Project _ XXXXX}
+%\rfoot{\footnotesize OASIS3}
+\cfoot{\thepage}
+%
+% - nouvelles commandes -
+%
+\newcommand{\name}[2]{\newpage
+    \noindent \makebox[8.0cm][l]{\large \bf #1} \makebox[7.3cm][r]{\bf #2} 
+    \newline
+    \rule{\textwidth}{0.6mm} \newline
+    \vspace*{1.2cm} \newline
+}
+%
+% - debut doc -
+%
+\small
+\begin{document}
+\bibliographystyle{plain}
+%
+% > couverture
+	\input UG0_Coverage.tex
+%
+% > table des matieres
+        \newpage
+        \vspace*{1.0cm}
+	.
+	\newpage
+        \tableofcontents
+%
+% > introduction
+	\input UG_Acknowledgements.tex
+	\input UG0_Stepbystep_overview.tex
+	\input UG1_Obtaining.tex
+	\input UG2_Model_interfacing.tex
+	\input UG3_Namcouple_generation.tex
+        \input UG4_Transformations.tex
+        \input UG5_Auxiliary_files.tex
+        \input UG6_Compilation_running.tex
+% > appendices
+        \input UGA1_Grid_description.tex
+        \input UGA4_changes.tex
+        \input UGA2_SCRIP.tex
+        \input UGA3_couplings.tex
+%        \input UGA3_SIPC_GMEM_API.tex
+%	\input UGA4_PIPE_API.tex
+%
+\bibliography{oasis}
+\end{document}
+%
+% - fin doc -
+

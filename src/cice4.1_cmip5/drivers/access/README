@@ -1,0 +1,12 @@
+Based on ../access_v144_new/*.F90
+
+Changes/modifications made (following discussions with Chris Harris, MetOffice)
+
+(1) i2o, i2a coupling-interval lag:
+
+CH suggested that there is a 'dt_cpl_ai' lag for atm fields to get into ocn,
+and the lag for ocn fields to get in atm is 'dt_cpl_io'
+
+???
+
+

@@ -1,0 +1,199 @@
+#! /bin/csh -f
+
+if ( $1 == '') then
+  echo '*** Please issue the command like ***'
+  echo '     > ./comp_access_cice.VAYU.nP #nproc    ' 
+  echo 'here #proc is the number of cpu to be used for CICE4 (e.g. 1, 2, 4, 6...)'
+  exit
+else
+  set nproc = $1
+  echo *** $nproc processors will be used to run CICE4... ***
+endif
+
+### Change these to your own site and user directory! 
+### You will need to create a Makefile Macro in bld
+
+### Platform and its architecture ($HOST = xe)
+setenv SITE vayu.nci.org.au
+setenv ARCH vayu.nci.org.au
+
+set platform = $SITE
+#----------------------------------------------------------------------
+setenv AusCOMHOME $cwd:h:h:h
+
+source ${AusCOMHOME}/bin/environs.vayu.nci.org.au
+
+#----------------------------------------------------------------------
+
+### Specialty code
+setenv USE_ESMF no        # set to yes for ESMF runs
+setenv CAM_ICE  no        # set to yes for CAM runs (single column)
+setenv SHRDIR   csm_share # location of CCSM shared code
+setenv NETCDF   yes       # set to no if netcdf library is unavailable
+setenv DITTO    no        # reproducible diagnostics
+setenv ACCESS   yes       # set to yes for ACCESS
+setenv AusCOM   yes       # set to yes for AusCOM   !can NOT be omitted yet.
+### Use MPI1 or MPI2 ?
+setenv CHAN     MPI1
+ 
+### Location of ACCESS system
+#setenv SYSTEMDIR $HOME/ACCESS
+setenv SYSTEMDIR $AusCOMHOME
+echo SYSTEMDIR: $SYSTEMDIR
+
+### Location of this model (source)
+#setenv SRCDIR $SYSTEMDIR/submodels/cice4.1
+setenv SRCDIR $cwd:h
+echo SRCDIR: $SRCDIR
+ 
+### Location and names of coupling libraries and inclusions
+if ( $ACCESS == 'yes' ) then
+  setenv CPLLIBDIR $SYSTEMDIR/submodels/oasis3/prism/Linux/lib
+  setenv CPLLIBS '$(CPLLIBDIR)/libpsmile.$(CHAN).a'
+  #setenv CPLLIBS '$(CPLLIBDIR)/libanaisg.a $(CPLLIBDIR)/libanaism.a $(CPLLIBDIR)/libclim.MPI2.a $(CPLLIBDIR)/libpsmile.MPI2.a $(CPLLIBDIR)/libfscint.a $(CPLLIBDIR)/libmpp_io.a $(CPLLIBDIR)/libscrip.a'
+  echo CPLLIBS: $CPLLIBS
+  setenv CPLINCDIR $SYSTEMDIR/submodels/oasis3/prism/Linux/build/lib
+  setenv CPL_INCS '-I$(CPLINCDIR)/psmile.$(CHAN)'
+  #setenv CPL_INCS '-I$(CPLLIBBLD)/psmile.MPI2 -I$(CPLLIBBLD)/clim.MPI2'
+  echo CPL_INCS: $CPL_INCS
+endif
+ 
+### Location and name of the generated exectuable
+setenv BINDIR $SYSTEMDIR/bin
+
+#20091118: BUG fixed -- in tavg_i2o_fields , io_shflx is added twice! thus the shflx if doubled
+#          and therefore the ocean is constantly cooling down!
+setenv EXE cice_${CHAN}.VAYU_${nproc}p_v144_20091119_new
+
+#20100130: coupling stratgy is adjusted to mend the a=>o and o=>a lag. 
+#and others on CH's advice
+setenv EXE cice_${CHAN}.VAYU_${nproc}p_20100130
+#20100204: all changes on CH's advice. For use with Maciej's new UM exectuable, it's required to
+#be compiled with the default openmpi/1.3.3, as per Maciej. ~/bin/environs.vayu.nci.org.au is
+#therefore modified to removee "module load openmpi/1.2.8"
+setenv EXE cice_${CHAN}.VAYU_${nproc}p_20100204
+#20100208: aiu and ANGLET (instead of aice and ANGLE) are used for U cell weighting and T cell
+#rotation
+setenv EXE cice_${CHAN}.VAYU_${nproc}p_20100208
+#20100414: ice_thermo_itd.F90 back to original for "update_ocn_f" due to code change in 
+#mom4 frazil (ice_formation_new) calculation (--salt_adjustment cancelled  now)!
+setenv EXE cice_${CHAN}.VAYU_${nproc}p_20100414
+#---20100616: increase swflx (*1.064)
+#setenv EXE cice_${CHAN}.VAYU_${nproc}p_20100616
+#20101117: upgraded to cice4.1 (with Dave's ice_history.F90 fix using Gregorian calendar)
+setenv EXE cice4.1_access.exe-${nproc}p-20101222
+
+setenv EXE cice4.1_access.exe-${nproc}p-20110203
+
+setenv EXE cice4.1_access.exe-${nproc}p-20110218
+
+#write dhb_ice to check namelists right on all cpus:
+setenv EXE cice4.1_access.exe-${nproc}p-20110318
+
+### Location and name of the generated exectuable
+setenv DATESTR `date +%Y%m%d`
+setenv EXE cice4.1_access.exe-${nproc}p-${DATESTR}
+
+
+### Where this model is compiled
+setenv OBJDIR $SRCDIR/compile/obj_access_{$nproc}p
+if !(-d $OBJDIR) mkdir -p $OBJDIR
+ 
+### Grid resolution
+#setenv GRID gx3 ; setenv RES 100x116
+#setenv GRID gx1 ; setenv RES 320x384
+#setenv GRID tx1 ; setenv RES 360x240
+setenv GRID tp1 ; setenv RES 360x300
+                                                                                
+set NXGLOB = `echo $RES | sed s/x.\*//`
+set NYGLOB = `echo $RES | sed s/.\*x//`
+echo NXGLOB: $NXGLOB
+echo NYGLOB: $NYGLOB
+
+### For "Zero-Layer" ice configuration (ACCESS version)
+set N_ILYR = 1		# 4 for standard multi-layer ice.
+
+# Recommendations:
+#   NTASK equals nprocs in ice_in
+#   use processor_shape = slenderX1 or slenderX2 in ice_in
+#   one per processor with distribution_type='cartesian' or
+#   squarish blocks with distribution_type='rake'
+# If BLCKX (BLCKY) does not divide NXGLOB (NYGLOB) evenly, padding
+# will be used on the right (top) of the grid.
+#setenv NTASK      4       # total number of processors
+#setenv BLCKX     25       # x-dimension of blocks ( not including )
+#setenv BLCKY     29       # y-dimension of blocks (  ghost cells  )
+setenv NTASK      $nproc
+#setenv BLCKX     180       # x-dimension of blocks ( not including )
+setenv BLCKX     `expr $NXGLOB / $nproc`
+echo BLCKX: $BLCKX
+#setenv BLCKY     150       # y-dimension of blocks (  ghost cells  )
+setenv BLCKY     `expr $NYGLOB / $nproc` 
+echo BLCKY: $BLCKY
+
+echo
+
+# may need to increase MXBLCKS with rake distribution or padding
+@ a = $NXGLOB * $NYGLOB ; @ b = $BLCKX * $BLCKY * $NTASK
+@ m = $a / $b ; setenv MXBLCKS $m ; if ($MXBLCKS == 0) setenv MXBLCKS 1
+#setenv MXBLCKS 37 # if necessary (code will print proper value)
+                                                                                
+setenv CBLD   $SRCDIR/bld
+                                                                                
+if ( $ARCH == 'UNICOS/mp') setenv ARCH UNICOS
+if ( $ARCH == 'UNICOS') then
+   cp -f $CBLD/Makefile.$ARCH $CBLD/Makefile
+else
+   cp -f $CBLD/Makefile.std $CBLD/Makefile
+endif
+
+if ($NTASK == 1) then
+   setenv COMMDIR serial
+else
+   setenv COMMDIR mpi
+endif
+echo COMMDIR: $COMMDIR
+                                                                                
+setenv DRVDIR cice4
+                                                                                
+if ($USE_ESMF == 'yes') then
+  setenv DRVDIR esmf
+endif
+                                                                                
+if ($ACCESS == 'yes') then
+  setenv DRVDIR access
+endif
+echo DRVDIR: $DRVDIR
+                                                                                
+cd $OBJDIR
+                                                                                
+### List of source code directories (in order of importance).
+cat >! Filepath << EOF
+$SRCDIR/drivers/$DRVDIR
+$SRCDIR/source
+$SRCDIR/$COMMDIR
+$SRCDIR/$SHRDIR
+EOF
+                                                                                
+if ( $ARCH == 'UNICOS.ORNL.phoenix' ) then
+   ### use -h command for phoenix
+   cc -o makdep -h command $CBLD/makdep.c           || exit 2
+else if ( $ARCH == 'Linux.ORNL.jaguar' ) then
+   gcc -g -o makdep $CBLD/makdep.c                  || exit 2
+else
+   cc -o makdep $CBLD/makdep.c                      || exit 2
+endif
+gmake VPFILE=Filepath EXEC=$BINDIR/$EXE \
+           NXGLOB=$NXGLOB NYGLOB=$NYGLOB \
+           N_ILYR=$N_ILYR \
+           BLCKX=$BLCKX BLCKY=$BLCKY MXBLCKS=$MXBLCKS \
+      -f  $CBLD/Makefile MACFILE=$CBLD/Macros.Linux.$ARCH || exit 2
+                                                                                
+cd ..
+pwd
+echo NTASK = $NTASK
+echo "global N, block_size"
+echo "x    $NXGLOB,    $BLCKX"
+echo "y    $NYGLOB,    $BLCKY"
+echo max_blocks = $MXBLCKS
+echo N_ILYR = $N_ILYR

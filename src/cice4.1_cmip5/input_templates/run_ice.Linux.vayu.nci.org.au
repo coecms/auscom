@@ -1,0 +1,21 @@
+#!/bin/tcsh 
+#PBS -l cputim_job=0:30:00
+#PBS -l cputim_prc=0:30:00
+#PBS -l memsz_job=1gb
+#PBS -l memsz_prc=1gb
+#PBS -l cpunum_job=4
+#PBS -l cpunum_prc=4
+#PBS -q sx
+
+cd $PBS_O_WORKDIR
+
+setenv F_RECLUNIT BYTE
+
+set  stamp   = `date -u '+%y%m%d%H%M%S'`
+setenv ICE_LOG_FILE ice.log.${stamp}
+
+setenv MPI_DSM_DISTRIBUTE
+mpirun -np 4 ./cice  >&! $ICE_LOG_FILE
+
+exit 0
+

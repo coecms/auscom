@@ -1,0 +1,68 @@
+\newpage
+\chapter{Introduction}
+\label{sec_step}
+
+OASIS3 is the direct evolution of the OASIS coupler developed since
+more than 10 years at CERFACS (Toulouse, France).  OASIS3 is a
+portable set of Fortran 77, Fortran 90 and C routines.  At run-time,
+OASIS3 acts as a separate mono process executable, which main function
+is to interpolate the coupling fields exchanged between the component
+models, and as a library linked to the component models, the OASIS3
+PRISM Model Interface Library (OASIS3 PSMILe). OASIS3 supports 2D
+coupling fields only. To communicate with OASIS3, directly with
+another model, or to perform I/O actions, a component model needs to
+include few specific PSMILe calls. OASIS3 PSMILe supports in
+particular parallel communication between a parallel component model
+and OASIS3 main process based on Message Passing Interface (MPI) and
+file I/O using the mpp\_io library from GFDL.  Portability and
+flexibility are OASIS3 key design concepts.  OASIS3 has been
+extensively used in the PRISM demonstration runs and is currently used
+by approximately 15 climate modelling groups in Europe, USA, Canada,
+Australia, India and Brasil.  The current OASIS3 version and its toy
+coupled model TOYCLIM were compiled and run on NEC SX6,
+IBM Power4 and Linux PC cluster, and previous OASIS3 versions were run
+on many other platforms.
+
+\section{Step-by-step use of OASIS3}
+
+To use OASIS3 for coupling models and/or perform I/O
+actions, one has to follow these steps:
+\begin{enumerate}
+\item Obtain OASIS3 sources. (See chapter \ref{sec_Obtaining}).
+\item Identify the coupling or I/O fields and adapt the component
+  models to allow their exchange with the PSMILe library based on MPI1
+  or MPI2 message passing\footnote{The SIPC, PIPE and GMEM
+    communication techniques available in previous versions should
+    still work but are not maintained anymore and were not tested.}.
+  The PSMILe library is interfaced with the {\tt mpp\_io} library from
+  GFDL \cite{mpp_io} and therefore can be used to perform I/O actions
+  from/to disk files.  For more detail on how to interface a model
+  with the PSMILe, see chapter \ref{sec_modelinterfacing}.
+
+The TOYCLIM coupled model gives a practical example of a coupled
+model; the sources are given in directories {\tt
+  /prism/src/mod/toyatm, /toyoce, /toyche}; more detail on TOYCLIM and
+how to compile and run it can be found in chapter
+\ref{sec_compilationrunning}.
+
+\item Define all coupling and I/O parameters and the transformations
+  required to adapt each coupling field from its source model grid to
+  its target model grid; prepare OASIS3 configuring file {\it
+  namcouple} (See chapter \ref{sec_namcouple}). 
+  OASIS3 supports different interpolation algorithms as is described in
+  chapter \ref{sec_transformations}.
+
+\item Generate required auxiliary data files. (See chapter
+  \ref{sec_auxiliary}).
+\item Compile OASIS3, the component models and start the coupled
+  experiment. Chapter \ref{sec_compilationrunning} describes how to
+  compile and run OASIS3 and the TOYCLIM coupled model.
+
+\end{enumerate}
+
+The appendix \ref{sec_couplings} lists (some of) the coupled
+models realized with OASIS within the past 5 years or so.  
+
+If you need extra help, do not hesitate to contact us (see contact
+details on the back of the cover page).
+

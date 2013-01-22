@@ -1,0 +1,43 @@
+#==============================================================================
+# Makefile macros for xe.nci.org.au, an SGI ALTIX system running Linux
+#==============================================================================
+
+INCLDIR    := -I.
+SLIBS      := 
+ULIBS      := 
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional
+#CPPDEFS    := -DNEC_SX
+CPPDEFS    :=
+CFLAGS     := -c -O2
+FIXEDFLAGS := -132
+FREEFLAGS  := 
+
+#FC         := ifort
+FC         := mpif90
+
+#FFLAGS     := -g -r8 -i4 -O2 -align all -w -ftz -convert big_endian -assume byterecl
+FFLAGS     := -r8 -i4 -O2 -align all -w -ftz -convert big_endian -assume byterecl -no-vec
+
+#08/01/09: try FFLAGS used by toyclim (which works for toyclim model)
+#FFLAGS	:= -g  -heap-arrays 1m -convert big_endian -r8 $(PSMILE_INCDIR) $(CPPDEF) -I$(NETCDF_INCLUDE)
+ 
+
+MOD_SUFFIX := mod
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS) -v
+
+   CPPDEFS :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB)
+   #SLIBS   :=  $(SLIBS) $(OMPI_F90LIBS)
+   SLIBS   :=  $(SLIBS) #$(OMPI_F90LIBS)
+
+   #INCLDIR := $(INCLDIR) -I$(NETCDF_ROOT)/include
+   #SLIBS   := $(SLIBS) #-L$(NETCDF_ROOT)/lib -lnetcdf
+   INCLDIR := $(INCLDIR) -I$(NETCDF_ROOT)/include/Intel
+   SLIBS   := $(SLIBS) -L$(NETCDF_ROOT)/lib/Intel -lnetcdf
+
+   INCLDIR := $(INCLDIR) $(CPL_INCS)
+   SLIBS   := $(SLIBS) -L$(CPLLIBDIR) -lpsmile.${CHAN} 
+   SLIBS   := $(SLIBS) -L$(CPLLIBDIR) -lmpp_io -L$(NETCDF_ROOT)/lib/Intel -lnetcdf
+   #SLIBS   := $(SLIBS) -L$(CPLLIBDIR) -lmpp_io
+   #B: as for cice4, netcdf lib MUST be put behind the other libs...

@@ -1,0 +1,24 @@
+
+src now contains the mom4p1_pubrel_i18dec2009 release plus enhancements.
+
+Note that the source contains some BLUELINK developments (OFAM). The default namelists
+will not activate any OFAM components.
+
+OFAM has its own special namelists and does not interfere with the normal running of MOM4.
+
+The only components of MOM4P1 required for AusCOM and OFAM are in directories
+
+mom4p1
+shared
+ocean_shared
+
+auscom_cpl
+
+
+------------
+
+compile now has a new compilation script
+
+------------
+
+

@@ -1,0 +1,278 @@
+#!/bin/csh -vf
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
+# Minimal compile script for mom4p1 'solo' experiments under AusCOM coupling framework.
+#
+# On XE, This script must be used in two steps as follow:
+#
+# 1. do the compilation as an interactive batch job requesting more vmem than yet get for 
+#    interactive usage
+#
+# [@xe ]$ qsub -q express -lwalltime=01:00:00,vmem=2Gb,jobfs=4Gb,\
+#                 ncpus=1 -wd -I -lsoftware=intel-fc:intel-cc
+#
+# 2. wait for the prompt then carry on as you would for a fresh interactive login:
+#    (now you will be on a certain node (e.g., x2)
+#
+# [@x2 ]$ ./comp_auscom_XE.nci.org.au
+#
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#
+# Platform and its architecture ($HOST = xe)
+set platform = vayu.nci.org.au  # A unique identifier for your platform, 
+				# This corresponds to the mkmf templates in $root/bin.
+
+# Use MPI? (1 if yesI, 0 otherwise)
+set MPI		= 1
+echo MPI: $MPI
+# Use MPI1 or MPI2
+setenv CHAN	MPI1
+#set CHAN	= MPI1
+echo CHAN: $CHAN
+### Location of AusCOM system
+setenv AusCOMHOME $cwd:h:h:h
+#set AusCOMHOME	= $cwd:h:h:h
+echo AusCOMHOME: $AusCOMHOME
+# Location and name of the generated exectuable 
+set bindir        = $AusCOMHOME/bin
+set exe           = mom4_${CHAN}.exe-20101128
+
+#20110111: check size of i2o cpl fields:
+set exe           = mom4_${CHAN}.exe-20110111
+
+set exe           = mom4p1_${CHAN}.exe-20110203
+
+# Simon's new version (with tidal mixing fix)
+set exe           = mom4p1_${CHAN}.exe-20110210
+
+#check sea level fields: "copy" version
+set exe           = mom4p1_${CHAN}.exe-20110322-test
+
+#check sea level fields: "copy" version
+set exe           = mom4p1_${CHAN}.exe-20110328-dave
+set exe           = mom4p1_${CHAN}.exe-20110510-dave   # ke_tot range increased
+
+set exe           = mom4p1_${CHAN}.exe-20110511-dave   # chk cpl fields back in.
+
+set exe           = mom4p1_MPI1.exe-20110513-simon-ke5000 #ke_tot range increased more!
+
+set exe           = mom4p1_${CHAN}.exe-20110512-dave   # chk_cpl + more.
+
+set exe           = mom4p1_${CHAN}.exe-20110620-dave	
+#0620 is same to 0512, except "fixing" ocean_tracer.F90 at about line 2046.
+#T_diag(index_diag_temp)%field(:,:,:)=T_diag(index_diag_temp)%field(:,:,:)*Grd%tmask(:,:,:)
+
+#20110802: set latitude-dependent background_diffusivity (bg_diff)
+set exe           = mom4p1_${CHAN}.exe-20110802
+
+#20110803: read namelist auscom_ice_nml in ocean_vert_tidal
+set exe           = mom4p1_${CHAN}.exe-20110803-check-OK
+
+#20110902: modified mom4p1/ocean_tracers/ocean_tempsalt.F90 to allow for the possible cmip_offse
+#          avoiding *false* "out of range" warnings (which fill up stderr quickly and kill the job!) 
+set exe           = mom4p1_${CHAN}.exe-20110902
+
+set DATESTR = `date +%Y%m%d`
+#20111013: Applying sjm599's modification to some code to get rid of "false" warning messages
+#          (mainly range of temeperature and transports for different cmip5 units) 
+set exe           = mom4_${CHAN}.exe.${DATESTR}.VAYU
+
+#"pointer" version (Russ's original code)
+#set exe           = mom4p1_${CHAN}.exe-20110328-russ
+#
+# User does not need to change anything below!
+#
+set root          = $cwd:h 			# The directory you created when you checkout
+set code_dir      = $root/src			# source code directory
+set executable    = $cwd/build_${CHAN}/$exe	# executable created after compilation
+set pathnames     = $executable:h/path_names	# path to file containing list of source paths
+set mppnccombine  = $bindir/mppnccombine.VAYU	# path to executable mppnccombine
+set mkmfTemplate  = $root/bin/mkmf.template.vayu.nci.org.au
+set mkmf          = $root/bin/mkmf		# path to executable mkmf
+set cppDefs       = ( "-Duse_netCDF" )		# list of cpp #defines to be passed to the source files
+if ($MPI) set cppDefs  = ( "-Duse_netCDF -Duse_netCDF3 -Duse_libMPI -DAusCOM -DOASIS3" )
+
+# Users must ensure the correct environment file exists for their platform.
+#
+source $AusCOMHOME/bin/environs.$platform  # environment variables and loadable modules
+
+# setup directory structure
+if ( ! -d $executable:h )    mkdir -p $executable:h
+
+echo code_dir: $code_dir
+echo mppnccombine: $mppnccombine
+
+#
+# compile mppnccombine.c, needed only if $npes > 1
+if ( $MPI && ! -f $mppnccombine ) then
+mpicc -O -o $mppnccombine -I/apps/netcdf/3.6.3/include/Intel/ -L/apps/netcdf/3.6.3/lib/Intel\
+            $code_dir/postprocessing/mppnccombine.c -lnetcdf
+
+endif
+
+# The list of source files that should be compiled for this experiment.
+cat > $pathnames <<EOF
+shared/amip_interp/amip_interp.F90
+shared/astronomy/astronomy.F90
+shared/axis_utils/axis_utils.F90
+shared/column_diagnostics/column_diagnostics.F90
+shared/constants/constants.F90
+shared/data_override/data_override.F90
+shared/diag_manager/diag_axis.F90
+shared/diag_manager/diag_data.F90
+shared/diag_manager/diag_grid.F90
+shared/diag_manager/diag_manager.F90
+shared/diag_manager/diag_output.F90
+shared/diag_manager/diag_util.F90
+shared/drifters/cloud_interpolator.F90
+shared/drifters/drifters.F90
+shared/drifters/drifters_comm.F90
+shared/drifters/drifters_compute_k.h
+shared/drifters/drifters_core.F90
+shared/drifters/drifters_input.F90
+shared/drifters/drifters_io.F90
+shared/drifters/drifters_push.h
+shared/drifters/drifters_set_field.h
+shared/drifters/fms_switches.h
+shared/drifters/quicksort.F90
+shared/exchange/stock_constants.F90
+shared/exchange/xgrid.F90
+shared/fft/fft.F90
+shared/fft/fft99.F90
+shared/field_manager/field_manager.F90
+shared/field_manager/fm_util.F90
+shared/field_manager/parse.inc
+shared/fms/fms.F90
+shared/fms/fms_io.F90
+shared/fms/read_data_2d.inc
+shared/fms/read_data_3d.inc
+shared/fms/read_data_4d.inc
+shared/fms/test_fms_io.F90
+shared/fms/write_data.inc
+shared/horiz_interp/horiz_interp.F90
+shared/horiz_interp/horiz_interp_bicubic.F90
+shared/horiz_interp/horiz_interp_bilinear.F90
+shared/horiz_interp/horiz_interp_conserve.F90
+shared/horiz_interp/horiz_interp_spherical.F90
+shared/horiz_interp/horiz_interp_type.F90
+shared/include/fms_platform.h
+shared/memutils/memuse.c
+shared/memutils/memutils.F90
+shared/mosaic/constant.h
+shared/mosaic/create_xgrid.c
+shared/mosaic/create_xgrid.h
+shared/mosaic/gradient.F90
+shared/mosaic/gradient_c2l.c
+shared/mosaic/gradient_c2l.h
+shared/mosaic/grid.F90
+shared/mosaic/interp.c
+shared/mosaic/interp.h
+shared/mosaic/mosaic.F90
+shared/mosaic/mosaic_util.c
+shared/mosaic/mosaic_util.h
+shared/mosaic/read_mosaic.c
+shared/mosaic/read_mosaic.h
+shared/mpp/mpp.F90
+shared/mpp/mpp_data.F90
+shared/mpp/mpp_domains.F90
+shared/mpp/mpp_io.F90
+shared/mpp/mpp_memutils.F90
+shared/mpp/mpp_parameter.F90
+shared/mpp/mpp_pset.F90
+shared/mpp/mpp_utilities.F90
+shared/mpp/nsclock.c
+shared/mpp/test_mpp.F90
+shared/mpp/test_mpp_domains.F90
+shared/mpp/test_mpp_io.F90
+shared/mpp/test_mpp_pset.F90
+shared/mpp/threadloc.c
+shared/mpp/include/mpp_chksum.h
+shared/mpp/include/mpp_chksum_int.h
+shared/mpp/include/mpp_chksum_scalar.h
+shared/mpp/include/mpp_comm.inc
+shared/mpp/include/mpp_comm_mpi.inc
+shared/mpp/include/mpp_comm_nocomm.inc
+shared/mpp/include/mpp_comm_sma.inc
+shared/mpp/include/mpp_data_mpi.inc
+shared/mpp/include/mpp_data_nocomm.inc
+shared/mpp/include/mpp_data_sma.inc
+shared/mpp/include/mpp_do_check.h
+shared/mpp/include/mpp_do_checkV.h
+shared/mpp/include/mpp_do_get_boundary.h
+shared/mpp/include/mpp_do_global_field.h
+shared/mpp/include/mpp_do_redistribute.h
+shared/mpp/include/mpp_do_update.h
+shared/mpp/include/mpp_do_updateV.h
+shared/mpp/include/mpp_do_updateV_ad.h
+shared/mpp/include/mpp_do_update_ad.h
+shared/mpp/include/mpp_domains_comm.inc
+shared/mpp/include/mpp_domains_define.inc
+shared/mpp/include/mpp_domains_misc.inc
+shared/mpp/include/mpp_domains_reduce.inc
+shared/mpp/include/mpp_domains_util.inc
+shared/mpp/include/mpp_error_a_a.h
+shared/mpp/include/mpp_error_a_s.h
+shared/mpp/include/mpp_error_s_a.h
+shared/mpp/include/mpp_error_s_s.h
+shared/mpp/include/mpp_get_boundary.h
+shared/mpp/include/mpp_global_field.h
+shared/mpp/include/mpp_global_reduce.h
+shared/mpp/include/mpp_global_sum.h
+shared/mpp/include/mpp_global_sum_ad.h
+shared/mpp/include/mpp_global_sum_tl.h
+shared/mpp/include/mpp_io_connect.inc
+shared/mpp/include/mpp_io_misc.inc
+shared/mpp/include/mpp_io_read.inc
+shared/mpp/include/mpp_io_util.inc
+shared/mpp/include/mpp_io_write.inc
+shared/mpp/include/mpp_read_2Ddecomp.h
+shared/mpp/include/mpp_reduce_mpi.h
+shared/mpp/include/mpp_reduce_nocomm.h
+shared/mpp/include/mpp_reduce_sma.h
+shared/mpp/include/mpp_sum.inc
+shared/mpp/include/mpp_sum_mpi.h
+shared/mpp/include/mpp_sum_nocomm.h
+shared/mpp/include/mpp_sum_sma.h
+shared/mpp/include/mpp_transmit.inc
+shared/mpp/include/mpp_transmit_mpi.h
+shared/mpp/include/mpp_transmit_nocomm.h
+shared/mpp/include/mpp_transmit_sma.h
+shared/mpp/include/mpp_update_domains2D.h
+shared/mpp/include/mpp_update_domains2D_ad.h
+shared/mpp/include/mpp_util.inc
+shared/mpp/include/mpp_util_mpi.inc
+shared/mpp/include/mpp_util_nocomm.inc
+shared/mpp/include/mpp_util_sma.inc
+shared/mpp/include/mpp_write.h
+shared/mpp/include/mpp_write_2Ddecomp.h
+shared/mpp/include/system_clock.h
+shared/oda_tools/oda_core.F90
+shared/oda_tools/oda_types.F90
+shared/oda_tools/write_ocean_data.F90
+shared/oda_tools/xbt_drop_rate_adjust.f90
+shared/platform/platform.F90
+shared/random_numbers/MersenneTwister.F90
+shared/random_numbers/random_numbers.F90
+shared/sat_vapor_pres/sat_vapor_pres.F90
+shared/sat_vapor_pres/sat_vapor_pres_k.F90
+shared/station_data/station_data.F90
+shared/time_interp/time_interp.F90
+shared/time_interp/time_interp_external.F90
+shared/time_manager/get_cal_time.F90
+shared/time_manager/time_manager.F90
+shared/topography/gaussian_topog.F90
+shared/topography/topography.F90
+shared/tracer_manager/tracer_manager.F90
+shared/tridiagonal/tridiagonal.F90
+
+EOF
+
+set srcList = ( auscom_cpl mom4p1/ocean_core mom4p1/ocean_diag mom4p1/ocean_param/sources mom4p1/ocean_param/mixing mom4p1/ocean_param/gotm-4.0/include mom4p1/ocean_param/gotm-4.0/turbulence mom4p1/ocean_param/gotm-4.0/util  mom4p1/ocean_tracers mom4p1/ocean_csiro_bgc )
+
+# compile the model code and create executable
+set makeFile      = MakeSolo
+  cd $executable:h
+  $mkmf -f -m $makeFile -a $code_dir -t $mkmfTemplate -p $executable:t -c "$cppDefs" $srcList $pathnames $root/include $code_dir/shared/include $code_dir/shared/mpp/include /usr/local/include
+
+  make -f $makeFile
+
+# put the produced executable into the ~/AusCOM/bin/ 
+  mv $executable $bindir

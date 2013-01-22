@@ -1,0 +1,367 @@
+#!/bin/ksh
+#set -x
+######################################################################
+##
+############### User's section #######################################
+##
+## - Define jobnumber
+##  To get a proper result, the jobs have to be executed once each, one 
+##  after the other (i.e. 0, 1, 2, 3, 4 in sequence)
+jobnum=0   # 0, 1, 2, 3, 4
+
+## - Define architecture
+arch=Linux       # Linux/SX/ibm_power4 
+chan=MPI1        # MPI1/MPI2
+comp_precision=double  #double or single
+gridswr=0       #1 for model writing their grid, 0 if not
+host=`uname -n`
+
+## - Define paths
+cd ../../../..
+prismdir=`pwd`
+inputdir=$prismdir/util/running/toyclim/input
+datadir=$prismdir/data/toyclim
+bindir=$prismdir/$arch/bin
+if  [ $arch == SX ]; then
+  rundir=/import/ds9b/hpf/b/b340041/prism/toyclim/work
+else
+  rundir=$prismdir/util/running/toyclim/work
+fi
+
+
+## - Define names of executables
+oa3_exe=oasis
+atm_exe=toyatm
+che_exe=toyche
+oce_exe=toyoce
+
+## - Define MPIRUN, only used for arch=Linux
+MPIRUN=/usr/local/mpich-1.2.6/bin/mpirun
+
+## - Define number of processes to run toyatm and toyche
+##   toyoce and oasis3 always have one processus each
+nproc_atm=3
+nproc_oce=1
+nproc_che=3
+
+############### End of user's section ################################
+
+echo ''
+echo '*****************************************************************'
+echo '***    toyclim '$jobnum
+echo ''
+echo 'rundir       :' $rundir
+echo 'inputdir     :' $inputdir
+echo 'datadir      :' $datadir
+echo 'bindir       :' $bindir
+echo 'architecture :' $arch
+echo 'host         : '$host
+echo 'chan         : '$chan
+echo 'run          : '$jobnum
+echo ''
+echo 'toyatm runs on '$nproc_atm 'processes'
+echo 'toyoce runs on '$nproc_oce 'processes'
+echo 'toyche runs on '$nproc_che 'processes'
+echo ''
+######################################################################
+###
+### 1. Copy and modify necessary files depending on job number
+
+# find date
+
+if [ $jobnum == 0 ]; then
+    date=00010101
+elif  [ $jobnum == 1 ]; then
+    date=00010107
+elif  [ $jobnum == 2 ]; then
+    date=00010113
+elif  [ $jobnum == 3 ]; then
+    date=00010119
+elif  [ $jobnum == 4 ]; then
+    date=00010125
+else
+    echo 'EXIT : run can only be start or restart'
+    exit 
+fi
+
+echo 'start date   :' $date
+echo ''
+
+if [ $jobnum == 0 ]; then
+  #
+  # First run : start
+  #
+  rm -fr $rundir
+  mkdir -p $rundir
+
+  cp -f $bindir/oasis3.$chan.x $rundir/$oa3_exe
+  cp -f $bindir/toyoce.$chan.x $rundir/$oce_exe
+  cp -f $bindir/toyatm.$chan.x $rundir/$atm_exe
+  cp -f $bindir/toyche.$chan.x $rundir/$che_exe
+
+  cp -f $inputdir/cf_name_table.txt                                $rundir/.
+  if [ $comp_precision == single ]; then
+      cp -f $datadir/input_toyclim_standard_standard_prism_2-2_single.tar.gz  $rundir/input_toyclim_standard_standard_prism_2-2.tar.gz
+  else
+      cp -f $datadir/input_toyclim_standard_standard_prism_2-2.tar.gz  $rundir/.
+  fi
+
+  chmod +x $rundir/$oa3_exe $rundir/$oce_exe $rundir/$atm_exe $rundir/$che_exe
+
+  cd $rundir
+  gunzip input_toyclim_standard_standard_prism_2-2.tar.gz
+  tar xvf input_toyclim_standard_standard_prism_2-2.tar
+  cp input/oasis3/* .
+  if [ $comp_precision == single ]; then
+      gridswr = 1
+  fi
+  if [ $gridswr == 1 ]; then
+      mv grids.nc grids_in.nc
+      mv masks.nc masks_in.nc
+      mv areas.nc areas_in.nc
+  fi
+
+else
+  #
+  # Restart run 
+  # Initial run jobnum=0 must have been done to perform the restart run
+  #
+  rm -f $rundir/*.prt*
+  rm -f $rundir/anaisout
+fi
+
+cd $rundir
+
+### Copy and update of namcouple with date, MPI1/MPI2 and number of procesuss
+  if [ $comp_precision == single ]; then
+      cp -f $inputdir/namcouple_single      $rundir/namcouple
+  else
+      cp -f $inputdir/namcouple      $rundir/namcouple
+  fi
+    
+ed $rundir/namcouple <<EOF
+g/mpixx/s/mpixx/$chan/
+g/ini_date/s/ini_date/$date/
+g/nproc_atm/s/nproc_atm/$nproc_atm/
+g/nproc_atm/s/nproc_atm/$nproc_atm/
+g/nproc_oce/s/nproc_oce/$nproc_oce/
+g/nproc_oce/s/nproc_oce/$nproc_oce/
+g/nproc_che/s/nproc_che/$nproc_che/
+g/nproc_che/s/nproc_che/$nproc_che/
+w
+q
+EOF
+
+######################################################################
+###
+### 2. Create configuration scripts
+
+if [ $arch == Linux ]; then
+  #
+  # Linux
+  #
+
+  if [ $chan == MPI2 ]; then
+      echo 'Running on Linux with MPI2 not implemeted here!'
+      EXIT
+  fi
+
+  cat <<EOF> $rundir/appl-linux.conf
+$host 0 $rundir/$oa3_exe
+EOF
+
+  count=0
+  while [[ $count -lt $nproc_atm ]];do
+   cat <<EOF>> $rundir/appl-linux.conf
+$host 1 $rundir/$atm_exe
+EOF
+   (( count += 1 ))
+  done
+
+  count=0
+  while [[ $count -lt $nproc_oce ]];do
+   cat <<EOF>> $rundir/appl-linux.conf
+$host 1 $rundir/$oce_exe
+EOF
+   (( count += 1 ))
+  done
+
+  count=0
+  while [[ $count -lt $nproc_che ]];do
+   cat <<EOF>> $rundir/appl-linux.conf
+$host 1 $rundir/$che_exe
+EOF
+   (( count += 1 ))
+  done
+
+
+
+elif [ $arch == SX ] && [ $chan == MPI1 ]; then
+
+  #
+  # NEX SX-6
+  #
+ (( nproc = 1 + $nproc_atm + $nproc_oce + $nproc_che )) 
+
+  cat <<EOF >$rundir/run_toyclim.$arch
+#!/bin/ksh
+#PBS -l cpunum_prc=$nproc        # number of CPUs (maximum number of CPUs 8)
+#PBS -l cputim_job=00:30:00 # 30 min cputime
+#PBS -l memsz_job=3gb       # 3 Gbyte memory
+#PBS -j o                   # join err and out to out
+#PBS -N toyclim              # job name
+###PBS -M youremail         # email address for error messages etc
+#
+/bin/echo " job started at: " \\c
+date
+/bin/echo " ExecutionHost : " \\c
+hostname                   # print name of current host
+
+
+cd $rundir
+
+mpiexec -n 1 $oa3_exe : -n $nproc_atm $atm_exe : -n $nproc_oce $oce_exe : -n $nproc_che $che_exe
+
+/bin/echo " job completed at: " \\c
+date
+
+EOF
+
+elif [ $arch == SX ] && [ $chan == MPI2 ]; then
+
+  #
+  # NEX SX-6
+  #
+ (( nproc = 1 + $nproc_atm + $nproc_oce + $nproc_che )) 
+
+  cat <<EOF >$rundir/run_toyclim.$arch
+#!/bin/ksh
+#PBS -l cpunum_prc=$nproc        # number of CPUs (maximum number of CPUs 8)
+#PBS -l cputim_job=00:30:00 # 30 min cputime
+#PBS -l memsz_job=3gb       # 3 Gbyte memory
+#PBS -j o                   # join err and out to out
+#PBS -N toyclim              # job name
+###PBS -M youremail         # email address for error messages etc
+#
+/bin/echo " job started at: " \\c
+date
+/bin/echo " ExecutionHost : " \\c
+hostname                   # print name of current host
+
+
+cd $rundir
+
+mpiexec -v -np 1 -max_np $nproc $oa3_exe
+
+/bin/echo " job completed at: " \\c
+date
+
+EOF
+
+
+
+elif  [ $arch == ibm_power4 ]; then
+
+  if [ $chan == MPI2 ]; then
+      echo 'MPI2 not possible at IBM'
+      EXIT
+  fi
+
+  #
+  # IBM power4
+  #
+
+  cat <<EOF >$rundir/appl-aix.conf
+$oa3_exe
+EOF
+
+  count=0
+  while [[ $count -lt $nproc_atm ]];do
+   cat <<EOF>> $rundir/appl-aix.conf
+$atm_exe
+EOF
+   (( count += 1 ))
+  done
+
+  count=0
+  while [[ $count -lt $nproc_oce ]];do
+   cat <<EOF>> $rundir/appl-aix.conf
+$oce_exe
+EOF
+   (( count += 1 ))
+  done
+
+  count=0
+  while [[ $count -lt $nproc_che ]];do
+   cat <<EOF>> $rundir/appl-aix.conf
+$che_exe
+EOF
+   (( count += 1 ))
+  done
+
+
+  (( nproc = 1 + $nproc_atm + $nproc_oce + $nproc_che )) 
+
+  cat <<EOF >$rundir/run_toyclim.$arch
+#!/bin/ksh 
+#
+#  This script will launch toyclim with oasis3
+#
+#@ shell           = /usr/bin/ksh 
+#@ class           = np 
+#@ job_type        = parallel 
+#@ job_name        = toyclim
+#@ output          = \$(job_name).\$(schedd_host).\$(jobid).out 
+#@ error           = \$(job_name).\$(schedd_host).\$(jobid).out 
+#@ notification    = never  
+#@ resources       = ConsumableCpus(1) ConsumableMemory(100mb) 
+#@ node            = 1
+#@ tasks_per_node  = $nproc
+#@ cpu_limit        = 00:30:00 
+#@ wall_clock_limit = 00:30:00 
+#@ queue 
+
+MPI_DSM_VERBOSE=1; export MPI_DSM_VERBOSE
+poe -pgmmodel mpmd -cmdfile appl-aix.conf
+
+exit 0  
+
+EOF
+
+
+else 
+  echo 'For architecture='$arch ' you have to add your execution'
+  exit
+fi 
+
+
+######################################################################
+###
+### 3. Execute the model
+
+if [ $arch == Linux ]; then
+
+  echo 'Executing the model using '$MPIRUN 
+
+  $MPIRUN -p4pg appl-linux.conf ./$oa3_exe > runjob.err
+
+elif [ $arch == SX ]; then
+
+  echo 'Submitting the job to queue using qsub'
+  qsub $rundir/run_toyclim.$arch
+  qstat
+
+elif  [ $arch == ibm_power4 ]; then
+ 
+  echo 'Submitting the job to queue using llsubmit'    
+  llsubmit $rundir/run_toyclim.$arch
+    
+fi
+
+echo 'toyclim '$run'run is executed or submitted to queue.'
+echo 'Results are found in rundir : '$rundir 
+
+
+
+exit
+

@@ -1,0 +1,27 @@
+#!/bin/tcsh
+#
+# Purpose
+# -------
+# Compiles OASIS3 on cognac.ivec.org
+#
+# History
+# -------
+# 2008 Jul 2	Steven Phipps	Original version
+
+# Set the name of the platform on which we are working 
+setenv PLATFORM cognac.ivec.org
+echo ""
+echo PLATFORM = $PLATFORM
+echo ""
+
+# Set the path to the top-level PRISM directory
+setenv PRISMHOME $cwd:h:h:h:h:h:h/prism
+echo ""
+echo PRISMHOME = $PRISMHOME
+echo ""
+
+# Compile OASIS3
+echo ""
+echo Compiling OASIS3 ...
+echo ""
+make -f TopMakefileOasis3

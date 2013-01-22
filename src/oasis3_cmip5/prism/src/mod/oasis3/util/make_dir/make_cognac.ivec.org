@@ -1,0 +1,72 @@
+#
+# Include file for OASIS3 Makefile adapted to SGI Altix cluster at iVEC
+#
+##############################################################################
+#
+# Needed to work with SCE Makefile
+COUPLE          = oasis3
+I4mods          = I
+#
+# CHAN : MPI1/MPI2
+CHAN            = MPI1
+#
+# Paths for libraries, object files and binaries
+#
+# PRISMHOME     : path for the root of prism directory tree, can be anywhere
+# ARCHDIR       : directory created when compiling
+# LIBPSMILE     : list of oasis3 libraries
+# PSMILE_INCDIR : includes all *o and *mod for each library
+# BINDIR        : directory for executables
+# LIBBUILD      : contains a directory for each library
+#
+ARCHDIR         = $(PRISMHOME)/Linux
+LIBPSMILE	= $(ARCHDIR)/lib/libanaisg.a $(ARCHDIR)/lib/libanaism.a $(ARCHDIR)/lib/libclim.$(CHAN).a $(ARCHDIR)/lib/libpsmile.$(CHAN).a $(ARCHDIR)/lib/libfscint.a  $(ARCHDIR)/lib/libmpp_io.a $(ARCHDIR)/lib/libscrip.a
+PSMILE_INCDIR   = -I$(LIBBUILD)/psmile.$(CHAN) -I$(LIBBUILD)/clim.MPI1 -I$(LIBBUILD)/mpp_io
+BINDIR          = $(ARCHDIR)/bin
+LIBBUILD        = $(ARCHDIR)/build/lib
+#
+# MPI library
+MPIDIR      =
+MPIBIN      =
+MPI_INCLUDE =
+MPILIB      = -lmpi
+#
+# NETCDF library
+NETCDF_INCLUDE  = /opt/netcdf/3.6.1/intel-9.0/include
+NETCDF_LIBRARY  = -L/opt/netcdf/3.6.1/intel-9.0/lib -lnetcdf
+#
+# Compiling and other commands
+MAKE        = make
+F90         = ifort
+F           = $(F90)
+f90         = $(F90)
+f           = $(F90)
+CC          = icc
+LD          = ifort
+#
+AR          = ar
+ARFLAGS     = -r
+#
+#
+# compiler options and cpp keys
+# 
+CPPDEF    = -Duse_libMPI -Duse_netCDF -Duse_comm_$(CHAN) -DDEBUG
+#
+#
+# For compiling in double precision, put -r8
+# For compiling in single precision, remove -r8 and add -Duse_realtype_single
+F90FLAGS  = -convert big_endian -r8 $(PSMILE_INCDIR) $(CPPDEF) -I$(NETCDF_INCLUDE)
+f90FLAGS  = $(F90FLAGS)
+FFLAGS    = $(F90FLAGS)
+fFLAGS    = $(F90FLAGS)
+CCFLAGS   = $(PSMILE_INCDIR) $(CPPDEF) -I$(NETCDF_INCLUDE)
+LDFLAGS   = 
+#
+# MPP_IOOPT needed for compiling mpp_io
+MPP_IOOPT = -convert big_endian -r8
+#
+# External libraies for linking
+FLIBS     = $(NETCDF_LIBRARY) $(MPILIB)
+#
+#
+###############################################################################

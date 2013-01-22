@@ -1,0 +1,801 @@
+#! /bin/ksh
+
+
+#########################################################################
+#
+#     C O M P I L E  -  script for oasis3.
+#                                                                       
+#     File       : ~/src/mod/oasis3/COMP_oasis3
+#
+#     Stephanie Legutke, MPI-HH, M&D          Jan 29, 2004
+#
+#     3 positional parameters are possible:
+#	                        $1=Make target       (optional:all,lib,clean,tar)
+#    		 	        $2=message_passing   (optional)
+#		 	        $3=submodel/version  (optional)
+#
+#     message_passing "NONE" will cause the script NOT to update and load the 
+#     psmile/mpp_io libraries. It should therefore be used for creation of
+#     executables w/o submodels which do not communicate through OASIS3.
+#     For communication through OASIS3 use "MPI1" or "MPI2".
+#
+#     If called with $1=clean, only the model's build directory
+#     is cleaned, not the libraries.
+#
+#     If called with $1=lib, only the model's library (archive with .o files)
+#     is updated.
+#
+#     If called with $1=tar, a tar file with the source code of the model 
+#     and all libraries it links to is created. The tar file is moved to 
+#     PRISM source-root directory. 
+#
+#     If called with $1=all, this script checks all libraries needed by 
+#     the model. If these are not up-to-date they will be made by calling  
+#     the library-compile script with "all" for the target
+#                                with       the models libraries,
+#                                with       the message passing used by the model,
+#                                with       the model name
+#     as positional parameters to that script.
+#     If the libraries are ok the model will be made.
+#     
+#     For main models: 
+#     If $3 contains the name of a valid submodel the library with the source
+#     code of that submodel is created first.
+#     For sub-models: 
+#     If $3 contains the version string of the calling model, 
+#     it is checked against the actual string.
+#
+#     Cleaning of libraries is not possible with this script.
+#
+#     Usage : COMP_oasis3 
+#                        ["make_target"      \
+#                        ["message_passing"  \
+#                        ["submodel/submodel_version"      ] ] ]
+#
+#     If called with no parameters, the defaults given below
+#     are used. If parameter n is specified; the parameter 1,...n-1
+#     must be specified as well.
+#
+#########################################################################
+
+
+
+set -e
+
+################### Start of user specifications (defaults) ####################
+#
+
+# message_passing                       : NONE   /  MPI 2/1
+
+message_passing=SIPC
+
+# coupler                               : oasis3
+# use_key_noIO                          : whether mpp_io will be used for I/O
+# 
+coupler=oasis3
+use_key_noIO=yes
+
+
+
+# OASIS3 specific GUI input:
+
+compile_mode=default
+
+# make_target                           : clean/all/tar/lib
+make_target=all
+
+model_version=""
+
+######################## Command line parameter  ###############################
+# 
+# Help function
+#
+if [ "$1" = "--" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] ; then
+  echo 
+  echo '----------- Usage -----------------------------------------------'
+  echo ' $1=make_target       (all/lib/tar/clean; optional)'
+  echo ' $2=message_passing   (MPI1/MPI2; optional)'
+  echo ' $3=submodel/version  (submodel name/version)'
+  echo ' '
+  echo ' Default active values are:'
+  echo ' make_target               : '${make_target}
+  echo ' message_passing           : '${message_passing}
+  echo ' submodel/submodelversion  : '${submodel_1}
+  echo '-----------------------------------------------------------------'
+  exit 1
+fi
+
+# Overwrite with command line parameter if specified
+
+[ "$1" = "" ] || make_target=$1
+[ "$2" = "" ] || message_passing=$2
+[ "$3" = "" ] || submodel_1=$3
+
+set -u
+
+######################## Input checks : all  ########################
+# 
+#
+
+if [ "${make_target}" != "clean" ] && \
+   [ "${make_target}" != "all" ]   && \
+   [ "${make_target}" != "lib" ]   && \
+   [ "${make_target}" != "tar" ];       then 
+  echo " Invalid target : "${make_target}
+  echo " The task is stopped!"
+  exit 1
+fi
+
+if [ "${message_passing}" != "MPI2" ] && \
+   [ "${message_passing}" != "MPI1" ] && \
+   [ "${message_passing}" != "SIPC" ] && \
+   [ "${message_passing}" != "NONE" ];     then 
+  echo " Invalid option for message passing : "${message_passing}
+  echo " The task is stopped!"
+  exit 1
+fi
+
+
+######################## Set and print input parameter: all  ###################
+# 
+
+export COUPLER=${coupler}
+
+export MAKETARGET=${make_target}
+echo " "
+echo "Make target : "
+echo $MAKETARGET
+
+export CHAN=${message_passing}
+
+
+echo ' '
+if [ "$MAKETARGET" = all ]; then
+  echo 'The model will be updated.' 
+  echo '         Message passing : '$CHAN
+elif [ "$MAKETARGET" = lib ]; then
+  echo 'The model library will be created; no executable.' 
+elif [ "$MAKETARGET" = clean ]; then
+  echo 'The model build directory will be cleaned.' 
+elif [ "$MAKETARGET" = tar ]; then
+  echo 'A tar-file of the model including all necessary '
+  echo 'libraries will be created.'
+fi
+
+if [ $CHAN = NONE ]; then
+  export COUPLER=NONE
+fi
+
+export SUBMOD1=""
+export SUBMOD1LIB=""
+
+#
+# Special parameter check for OASIS3
+#
+
+# export MAINPRG=couple
+
+export MODVERS=${model_version}
+
+scriptdir=`dirname $0`
+cd $scriptdir
+export SCRIPTDIR=`pwd`
+node=`uname -n`
+
+################################# Prolog  #######################################
+#
+# 'Prolog' : Node name and operating system etc.
+#
+
+export NODE=$node
+
+echo ' '
+echo 'This script runs on node ' $NODE'.'
+
+echo ' '
+echo 'Script directory is      '$SCRIPTDIR
+
+cd $SCRIPTDIR
+
+cd ../../..
+export SRCROOT=`pwd`
+echo 'PRISM top source root directory is '$SRCROOT
+
+export MODHOME=$SCRIPTDIR
+export MODEL_DIR=`basename $MODHOME`
+
+echo ' '
+echo 'Model directory is '$MODHOME
+echo 'Model name      is '$MODEL_DIR
+export TARFILE=${MODEL_DIR}_`date +%y%m%d`.tar
+
+############### Site and OS dependent specifications ###########################
+#
+#                elnino:  part of name of header file
+#                NODE   : where the model is      compiled
+
+  export NODE=`echo ${NODE} | cut -c1-6`
+  if   [ ${NODE} != elnino ]; then
+    echo ' The OS/Site dependent specifications are not for this machine.'
+    echo ' Node name of this machine:' ${NODE}
+    echo ' Script setup is for elnino (MIPS)'
+  if [ "$MAKETARGET" != "tar" ]; then
+    echo ' The task is stopped!'
+    exit 1
+  fi
+  fi
+  if [ "$MAKETARGET" = "lib" ]; then
+    echo ' '
+    echo 'No executable will be created. '
+  fi
+
+  export ARCH=MIPS                                                                
+  export BLDROOT=$SRCROOT/$ARCH
+
+  if [ $CHAN = MPI2 ]; then
+     export F90com="/usr/local/lam6.5.6/bin/mpif77"
+     export MPIROOT=" "
+     export MPI_LIB="-L/usr/local/lam6.5.6/lib -lmpi"
+     export MPI_INCLUDE="/usr/local/lam6.5.6/include/"
+  elif [ $CHAN = MPI1 ]; then
+     export F90com="f90"
+     export MPIROOT=" "
+     export MPI_LIB="-L/usr/local/mpich-1.2.2/lib -lmpich"
+     export MPI_INCLUDE="/usr/local/mpich-1.2.2/include/"
+  elif [ $CHAN = NONE ]; then
+     export F90com="f90"
+     export MPIROOT=" "
+     export MPI_LIB="-L/usr/local/mpich-1.2.2/lib -lmpich"
+     export MPI_INCLUDE="/usr/local/mpich-1.2.2/include/"
+  elif [ $CHAN = SIPC ]; then
+     export F90com="f90"
+     export MPIROOT=" "
+     export MPI_LIB=" "
+     export MPI_INCLUDE=" "
+  else
+    echo ' '
+    echo 'Invalid value for CHAN : '$CHAN
+    exit 1
+  fi
+
+  export NETCDFROOT=/usr/local
+  export NETCDF_LIB="${NETCDFROOT}/lib/libnetcdf.a"
+  export NETCDF_INCLUDE=${NETCDFROOT}/include
+
+  export LIB1=" "
+  export LIB2=" "
+  export LIB3=" "
+
+  export SYS_INCLUDE=/usr/include
+
+  export f90com=${F90com}
+  export Fcom=${F90com}
+  export fcom=${F90com}
+
+  export cc="cc"
+  export ar="ar"
+  export as=as
+  export cp=cp
+
+  PATH=$SRCROOT/util:$PATH
+
+  alias make="make"
+
+# Compile modes (specified by user)
+# Note : the libs must be searched cyclically now for oasis3!
+
+  if [ $compile_mode = default ];   then
+    optc="-O2"
+    optf="-O2"
+    optl="-O2 "
+  elif [ $compile_mode = debug ];   then
+    optc="-g"
+    optf="-g"
+    optl="-g "
+  elif [ $compile_mode = profile ]; then
+    echo "Use ssrun -totaltime! See man page 'ssrun'!"
+    optc="-O2"
+    optf="-O2"
+    optl="-O2 "
+  elif [ $compile_mode = opt ];     then
+    optc="-O3"
+    optf="-O3"
+    optl="-O3 "
+  elif [ $compile_mode = ad_hoc ];  then
+    echo "with this option the options are set through GUI input"
+    exit 1
+  else
+    echo "invalid compile mode"
+    exit 1
+  fi
+# Operating system dependend specifications
+#
+# All models should use cpp flag __sgi for activation of platform dependent 
+#     source code on MIPS-IRIX64  machines !
+#
+# `uname -n` : elnino
+# `uname -s` : IRIX64
+# `uname -m` : MIPS
+#
+#
+
+  export CPPFLAG="__sgi "
+
+  export CPPFLAGF90start=""
+  export CPPFLAGSEP=" "
+
+  lstflags=""
+
+  export F90FLAG="${optf} ${lstflags} -r8"
+  export FFLAG=${F90FLAG}
+  export f90FLAG=${F90FLAG}
+  export fFLAG=${F90FLAG}
+
+  export LDFLAG="${optl}              -r8"
+
+  export CCFLAG="${optc}"
+
+  export AFLAG=""
+
+  export ARFLAG=" rv"
+
+  export MPPFLAG=" "
+
+  if [ ${CHAN} = MPI2 ]; then
+    MPPFLAG=${MPPFLAG}" -macro_expand "
+    export CPPFLAG=$CPPFLAG" -Duse_LAM_MPI"
+  elif [ ${CHAN} = MPI1 ]; then
+    MPPFLAG=${MPPFLAG}" -macro_expand"
+    export CPPFLAG=$CPPFLAG" "
+  elif [ ${CHAN} = NONE ]; then
+    MPPFLAG=${MPPFLAG}" "
+    export CPPFLAG=$CPPFLAG" "
+  elif [ ${CHAN} = SIPC ]; then
+    MPPFLAG=${MPPFLAG}" "
+    export CPPFLAG=$CPPFLAG" "
+  fi
+
+  export I4mods="I"
+
+
+################################################################################
+# 
+# OASIS3 CPP flags not depending on site or OS
+#
+
+CPPFLAG=${CPPFLAG}" -Duse_comm_${CHAN}"
+
+export CPPFLAGCC=$CPPFLAG
+
+CPPFLAGF90=""
+for flag in $CPPFLAG ; do
+ CPPFLAGF90=$CPPFLAGF90$CPPFLAGSEP$flag
+done
+if [ "$CPPFLAGF90" != "" ]; then 
+  CPPFLAGF90=$CPPFLAGF90start$CPPFLAGF90
+fi
+export CPPFLAGF90
+
+if [ "$MAKETARGET" = "all" ] || [ "$MAKETARGET" = "lib" ]; then
+  echo ' '
+  echo "CPP flags used with the cc command: "
+  echo $CPPFLAGCC
+  echo ' '
+  echo "CPP flags used with the f90 command: "
+  echo $CPPFLAGF90
+fi
+
+
+#
+#--------------------------------------------------------------------------------
+# Model executable name.
+#
+
+export EXEC=${MODEL_DIR}
+if [ "${SUBMOD1}" != ""  ]; then
+  EXEC=${EXEC}_${SUBMOD1}
+fi
+EXEC=${EXEC}${MODVERS}
+if [ "${CHAN}" != "NONE"  ]; then
+  export EXEC=${EXEC}.${CHAN}
+fi
+
+
+################################################################################
+# 
+# Libraries for oasis3
+#
+
+export SRCCOMP="src"
+
+export MODLIB=$EXEC
+
+srclibs="anaisg anaism scrip fscint"
+if [ "$CHAN" = "MPI1" ]; then
+  srclibs=${srclibs}" clim"
+fi
+if [ "$CHAN" = "MPI2" ]; then
+  srclibs=${srclibs}" clim"
+fi
+if [ "$CHAN" = "SIPC" ]; then
+  srclibs=${srclibs}" sipc"" svipc"
+fi
+export MAINPRG=couple
+#   SRCCOMP : model-src  directories in order they will be compiled      
+#   MODLIB : model  library/ies (should be one only)
+#   srclibs : other PRISM libraries ( $SRCROOT/src/lib...); must be " " if empty
+################################################################################
+# 
+# Libraries needed by all models
+#
+
+if [ "$MAKETARGET" = "all" ]; then
+if [ "$CHAN" != "NONE" ] && [ "${MODEL_DIR}" != "oasis3" ]; then 
+  srclibs=${srclibs}" psmile "
+  if [ $use_key_noIO != yes ]; then 
+    srclibs=${srclibs}" mpp_io"
+  fi
+fi
+fi
+
+################################################################################
+# 
+# Directories for tar file
+#
+
+TARFILE_DIRS=""
+for srclib in $srclibs; do
+ TARFILE_DIRS=${TARFILE_DIRS}" src/lib/${srclib}"
+done
+TARFILE_DIRS=${TARFILE_DIRS}" src/lib/psmile src/lib/mpp_io "
+if [ "${SUBMOD1}" != ""  ]; then
+  TARFILE_DIRS=${TARFILE_DIRS}" src/mod/${SUBMOD1}"
+fi
+export TARFILE_DIRS
+
+################################# Directories   ################################
+# 
+# Make the 'build' directories if needed
+#
+
+echo " "
+if [ "$MAKETARGET" = "all" ] || [ "$MAKETARGET" = "lib" ]; then
+  echo The model $MODEL_DIR will be updated
+  if [ "${srclibs}" != " " ]; then
+    echo together with its libraries
+    echo $srclibs '.'
+  else 
+    echo No libraries need to be updated.
+  fi
+elif [ "$MAKETARGET" = "clean" ]; then
+  echo The model $MODEL_DIR will be cleaned.
+fi
+
+if [ ! -d ${BLDROOT}/lib/$MODEL_DIR ]; then
+  echo ' '
+  echo 'Making model library build directory '${BLDROOT}/lib/$MODEL_DIR
+  mkdir -p ${BLDROOT}/lib/$MODEL_DIR
+fi
+
+export MODBUILD=${BLDROOT}/build/mod/${MODEL_DIR}${MODVERS}
+if [ ${CHAN} != "NONE" ]; then
+  MODBUILD=${MODBUILD}.${CHAN}
+fi
+if [ ! -d $MODBUILD ]; then
+  echo ' '
+  echo 'Making build directory '$MODBUILD 
+  mkdir -p $MODBUILD 
+fi
+
+export bin=${BLDROOT}/bin
+[ -d $bin ] || mkdir -p $bin
+
+export OTHLIBS=" "
+if [ "$srclibs" != " "  ]; then
+for library in $srclibs ; do
+  if [ $library = psmile ] || \
+     [ $library = clim   ] || \
+     [ $library = mpp_io ]       ; then 
+    ldlib=${library}.${CHAN}
+  else
+    ldlib=${library}
+  fi  
+  OTHLIBS=${OTHLIBS}" -l"$ldlib
+done
+OTHLIBS="-L${BLDROOT}/lib ${OTHLIBS}"
+fi
+
+export MODLIBS=" "
+for library in $MODLIB ; do
+  MODLIBS=${MODLIBS}" -l"${library}
+done
+MODLIBS="-L${BLDROOT}/lib/${MODEL_DIR} ${MODLIBS}"
+
+#
+# The library of the submodels must be the right version (cpp flags etc.).
+# Using the GUI this can be ensured by simultaneous setting up the
+# SMS tasks with the appropriate parameters, with the guarantee that whenever
+# these have to be the same, they are set accordingly in the main and submodel
+# scripts. With the scripting we pass only some of the parameters from the main
+# to the submodel compile scripts:
+#	      Make target    (all,clean,tar)
+#    	      message_passing
+#	      submodel       
+# Thereby we can assure that with the main model, the submodel is cleaned;
+#                       that they use the same message passing.
+#                       
+# We can not assure that the right physical options (parameterizations are switsched
+# on; list of cpp flags); therefore we require that the same version is used
+# in the hope that this reminds the user to set it up the right way.
+if [ "${SUBMOD1}" != ""  ]; then
+  MODLIBS=${MODLIBS}" -L${BLDROOT}/lib/${SUBMOD1} -l${SUBMOD1LIB}"
+fi
+
+#
+# Dont put paths here; they are included in VPATH
+#
+export DEPLIBS=" "
+for library in $MODLIB $srclibs ; do
+  if [ $library = psmile ] || \
+     [ $library = clim   ] || \
+     [ $library = mpp_io ]       ; then 
+    ldlib=${library}.${CHAN}
+  else
+    ldlib=${library}
+  fi  
+  DEPLIBS=${DEPLIBS}" lib"${ldlib}.a
+done
+
+cd $MODBUILD
+if [ "$MAKETARGET" != "tar" ]; then
+  echo ' '
+  echo 'Build directory is '$MODBUILD
+fi
+
+#
+# Update external libraries
+#
+if [ "$MAKETARGET" = "all" ] || [ "$MAKETARGET" = "lib" ]; then
+if [ "$srclibs" != " " ]; then 
+  echo ' '
+  echo 'Checking the libraries ...'
+  if [ ! -f $SRCROOT/util/COMP_libs.${NODE} ]; then
+    echo --- $SRCROOT/util/COMP_libs.${NODE} must be created first! ---
+    echo --- Use $SRCROOT/util/compile/frames/Create_COMP_libs.frm. ---
+    echo --- This script is stopped!
+    exit 1
+  fi
+  COMP_libs.${NODE} "all" "${srclibs}" "${CHAN}" "${MODEL_DIR}"
+  echo 'Checking the libraries finished '
+  echo ' '
+  echo ' '
+  echo 'Library update exit status : '
+  cat $BLDROOT/lib.status
+  set +e
+  grep -v ': 0' $BLDROOT/lib.status
+  if [ $? != 0 ]; then
+    echo 'Libraries OK'
+    echo ' '
+  else
+    echo "ERROR in $SRCROOT/util : Libraries not updated!"
+    echo "Check the log file for details!"
+    echo ' '
+    exit 1
+  fi
+  rm $BLDROOT/lib.status
+  set -e
+fi
+fi
+
+#
+# Update submodel
+#
+if [ "$MAKETARGET" = "all" ] && [ "${SUBMOD1}" != ""  ]; then 
+echo ' '
+echo 'Checking the submodel '${SUBMOD1}
+if [ ! -f $SRCROOT/src/mod/${SUBMOD1}/COMP_${SUBMOD1}.${NODE} ]; then
+  echo --- $SRCROOT/src/mod/${SUBMOD1}/COMP_${SUBMOD1}.${NODE} must be created first! ---
+  echo --- Use $SRCROOT/src/mod/${SUBMOD1}/compile/frames/Create_COMP_${SUBMOD1}.frm. ---
+  echo --- This script is stopped!
+  exit 1
+fi
+$SRCROOT/src/mod/${SUBMOD1}/COMP_${SUBMOD1}.${NODE} "lib" "${CHAN}" "${MODVERS}"
+echo 'Checking the submodel finished '
+echo ' '
+echo 'Submodel update exit status : '
+cat $BLDROOT/${SUBMOD1}.status
+set +e
+grep -v ': 0' $BLDROOT/${SUBMOD1}.status
+if [ $? != 0 ]; then
+  echo 'Submodel '${SUBMOD1}' OK'
+  echo ' '
+else
+  echo "ERROR in $SRCROOT/src/mod/${SUBMOD1} : Submodel not updated!"
+  echo "Check the log file for details!"
+  echo ' '
+  exit 1
+fi
+rm $BLDROOT/${SUBMOD1}.status
+set -e
+fi
+
+
+################################################################################
+#
+# Create the top level Makefile
+#
+
+cat > Top_Makefile_$$ <<'EOF1'
+
+export
+
+SHELL = /bin/ksh
+ 
+builddir = ./
+
+prefix = ../../../..
+
+includedir = ${prefix}/include
+
+configdir = ${prefix}/config
+
+exec_prefix = ../../..
+
+top_builddir = $(exec_prefix)/build
+
+bindir = $(exec_prefix)/bin
+
+libdir = $(exec_prefix)/lib
+  
+INCLUDES = -I$(NETCDF_INCLUDE) -I$(MPI_INCLUDE) -I$(SYS_INCLUDE)
+
+F90      = ${F90com}
+f90      = ${f90com}
+F        = ${Fcom}
+f        = ${fcom}
+CC       = $(cc)
+CPP      = ${cc} -E
+AR       = ${ar}
+AS       = ${as}
+
+AFLAGS   = $(AFLAG)
+
+ARFLAGS   = $(ARFLAG)
+
+CCFLAGS  = -I$(configdir) -I$(SYS_INCLUDE) $(CCFLAG) $(CPPFLAGCC)
+
+F90FLAGS = $(INCLUDES) $(F90FLAG) $(CPPFLAGF90)
+
+FFLAGS = $(INCLUDES) $(FFLAG) $(CPPFLAGF90)
+
+f90FLAGS = $(INCLUDES) $(f90FLAG) $(CPPFLAGF90)
+
+fFLAGS = $(INCLUDES) $(fFLAG) $(CPPFLAGF90)
+
+top_srcdir = $(prefix)/src/mod/${MODEL_DIR}
+
+LIBS     = $(MODLIBS) $(OTHLIBS) $(NETCDF_LIB) $(MPI_LIB) $(LIB1) $(LIB2) $(LIB3)
+
+LDFLAGS  = $(LDFLAG)
+
+lib: all
+
+all:
+	@for SRCDIR in $(SRCCOMP) ;\
+	  do \
+	    export SRC=$$SRCDIR;\
+	    echo Now updating : $$SRCDIR ...;\
+	    $(MAKE) -f $(top_srcdir)/$$SRCDIR/Makefile $(MAKETARGET); status=$$? ; \
+	    echo $$SRCDIR ':' $$status >> $(BLDROOT)/$(MODEL_DIR).status ; \
+	    if [ $$status != 0 ] ; then \
+	        echo "Exit status from make was $$status"  ; \
+	    fi ; \
+	  done
+
+clean:
+	@for SRCDIR in $(SRCCOMP) ;\
+	  do \
+	    export SRC=$$SRCDIR;\
+	    echo Now cleaning : $$SRCDIR ...;\
+	    $(MAKE) -f $(top_srcdir)/$$SRCDIR/Makefile $(MAKETARGET); status=$$? ; \
+	    echo $$SRCDIR ':' $$status >> $(BLDROOT)/$(MODEL_DIR).status ; \
+	    if [ $$status != 0 ] ; then \
+	        echo "Exit status from cleaning was $$status"  ; \
+	    fi ; \
+	  done
+
+tar:
+	cd $(prefix) ; \
+	tar -cvf $(TARFILE) \
+	src/mod/$(MODEL_DIR)/*/*  \
+	$(TARFILE_DIRS) \
+	config util/compile util/mod util/running
+
+EOF1
+#	src/mod/$(MODEL_DIR)/COMP_$(MODEL_DIR).elnino util/COMP_libs.elnino  \
+
+
+stdout=$SCRIPTDIR/COMP_${MODEL_DIR}.log
+stderr=$SCRIPTDIR/COMP_${MODEL_DIR}.err
+
+if [ -f $BLDROOT/oasis3.status ]; then rm $BLDROOT/oasis3.status; fi
+
+################################################################################
+#
+# Execute makefile  :   -p : listing of all default rules
+#                       -d : debug
+#                       -k : dont stop when error occurs
+# 
+
+if [ "$MAKETARGET" = "all" ]; then
+  export EXEC
+  echo ' '
+  echo 'Executable name is '${EXEC}.x
+fi
+
+if [ -f ${stdout} ] ; then
+   rm -f ${stdout}
+fi
+if [ -f ${stderr} ] ; then
+   rm -f ${stderr}
+fi
+
+make -f Top_Makefile_$$ $MAKETARGET -k 1> ${stdout} 2> ${stderr}
+  
+rm Top_Makefile_$$
+
+
+# 
+# Print compilation status
+# 
+
+if [ $MAKETARGET != "tar" ] ; then
+  echo ' '
+  cat $BLDROOT/${MODEL_DIR}.status
+  set +e
+  grep -v ': 0' $BLDROOT/${MODEL_DIR}.status
+  if [ $? != 0 ]; then
+    if [ $MAKETARGET = all   ]; then echo ${MODEL_DIR}' ... is up-to-date!' ; fi
+    if [ $MAKETARGET = clean ]; then echo ${MODEL_DIR}' ... is cleaned!' ; fi
+    echo ' '
+  else
+    if [ $MAKETARGET = all   ]; then echo 'Updating '${MODEL_DIR}' failed!' ; fi
+    if [ $MAKETARGET = clean ]; then echo 'Cleaning '${MODEL_DIR}' failed!' ; fi
+    echo 'Compilation of '${MODEL_DIR}' is stopped!'
+    exit 1
+  fi
+  set -e
+fi
+echo ' '
+
+#
+################################################################################
+
+
+# 
+#--------------------------------------------------------------------------------
+# Save executable
+# 
+
+if [ "$MAKETARGET" = "all" ]; then
+
+cd $bin
+
+if [ -f ${EXEC}.x ]; then
+  execname=${EXEC}.x
+  if [ ${MODEL_DIR} = "mpi-om"  ]; then
+    if [ $newstart = yes ]; then
+      execname=${EXEC}_newstart.x   
+      mv ${EXEC}.x ${execname}
+    fi
+  fi
+  echo 'Executable : '$bin/$execname
+else
+  echo ' '
+  echo 'No executable created.'
+  echo ' '
+fi
+
+fi
+
+exit

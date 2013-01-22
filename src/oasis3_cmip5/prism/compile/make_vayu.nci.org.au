@@ -1,0 +1,87 @@
+#
+# Include file for OASIS3 Makefile adapted to platform xe.nci.org.au
+#
+##############################################################################
+#
+# Needed to work with SCE Makefile
+COUPLE          = oasis3
+I4mods          = I
+#
+# CHAN : MPI1/MPI2
+CHAN            = MPI1
+#
+# Paths for libraries, object files and binaries
+#
+# PRISMHOME     : path for the root of prism directory tree, can be anywhere
+# ARCHDIR       : directory created when compiling
+# LIBPSMILE     : list of oasis3 libraries
+# PSMILE_INCDIR : includes all *o and *mod for each library
+# BINDIR        : directory for executables
+# LIBBUILD      : contains a directory for each library
+#
+ARCHDIR         = $(PRISMHOME)/Linux
+LIBPSMILE       = $(ARCHDIR)/lib/libanaisg.a $(ARCHDIR)/lib/libanaism.a $(ARCHDIR)/lib/libclim.$(CHAN).a $(ARCHDIR)/lib/libpsmile.$(CHAN).a $(ARCHDIR)/lib/libfscint.a  $(ARCHDIR)/lib/libmpp_io.a $(ARCHDIR)/lib/libscrip.a
+PSMILE_INCDIR   = -I$(LIBBUILD)/psmile.$(CHAN) -I$(LIBBUILD)/clim.MPI1 -I$(LIBBUILD)/mpp_io
+BINDIR          = $(ARCHDIR)/bin
+LIBBUILD        = $(ARCHDIR)/build/lib
+#
+# MPI library
+MPIDIR      =
+MPIBIN      =
+MPI_INCLUDE =
+#MPILIB      = -lmpi
+MPILIB      = $(OMPI_F90LIBS)
+#MPILIB      = 
+#
+# NETCDF library
+
+#NETCDF_INCLUDE  = /opt/netcdf/3.6.2/Intel-9.1/include
+#NETCDF_LIBRARY  = -L/opt/netcdf/3.6.2/Intel-9.1/lib -lnetcdf
+
+NETCDF_INCLUDE = $(NETCDF_ROOT)/include
+NETCDF_LIBRARY = -L$(NETCDF_ROOT)/lib -lnetcdf
+NETCDF_INCLUDE = $(NETCDF_ROOT)/include/Intel
+NETCDF_LIBRARY = -L$(NETCDF_ROOT)/lib/Intel -lnetcdf
+
+#
+# Compiling and other commands
+MAKE        = make
+#F90         = ifort
+#F90         = /apps/openmpi/1.3.3/bin/mpif90
+#F90         = /apps/openmpi/1.4.3/bin/mpif90
+F90         = mpif90	
+F           = $(F90)
+f90         = $(F90)
+f           = $(F90)
+#CC          = icc
+#LD          = ifort
+#CC          = /apps/openmpi/1.3.3/bin/mpicc
+#CC          = /apps/openmpi/1.4.3/bin/mpicc
+CC          = mpicc
+LD          = $(F90)
+#
+AR          = ar
+ARFLAGS     = -r
+#
+#
+# compiler options and cpp keys
+# 
+CPPDEF    = -Duse_libMPI -Duse_netCDF -Duse_comm_$(CHAN) -DDEBUG
+#
+#
+# For compiling in double precision, put -r8
+# For compiling in single precision, remove -r8 and add -Duse_realtype_single
+#XE#F90FLAGS  = -convert big_endian -r8 $(PSMILE_INCDIR) $(CPPDEF) -I$(NETCDF_INCLUDE)
+F90FLAGS  = -convert big_endian -r8 -no-vec $(PSMILE_INCDIR) $(CPPDEF) -I$(NETCDF_INCLUDE)
+f90FLAGS  = $(F90FLAGS)
+FFLAGS    = $(F90FLAGS)
+fFLAGS    = $(F90FLAGS)
+CCFLAGS   = $(PSMILE_INCDIR) $(CPPDEF) -I$(NETCDF_INCLUDE)
+LDFLAGS   = 
+#
+# MPP_IOOPT needed for compiling mpp_io
+MPP_IOOPT = -convert big_endian -r8
+#
+# External libraies for linking
+FLIBS     = $(MPILIB) $(NETCDF_LIBRARY)
+

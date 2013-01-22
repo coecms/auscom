@@ -1,0 +1,282 @@
+# This is a typical input file for OASIS 3.0, using netCDF format
+# for restart input files.  Oasis reads in
+# this file at run-time. Don't hesitate to ask precisions or make
+# suggestions (oasishelp@cerfacs.fr). 
+#
+# Any line beginning with # is ignored. Blank lines are not allowed.
+#
+ $SEQMODE
+# This keyword concerns the coupling algorithm. Put here the maximum number
+# of fields that have to be, at one particular coupling timestep,
+# exchanged sequentially in a given order.
+              1
+ $END
+#########################################################################
+ $CHANNEL
+# The communication technique you want to use.
+# Choices are MPI1 or MPI2, NONE.
+# - if you want to use MPI1 or MPI2 message passing, you must write 
+# MPI1 or MPI2 (+ NOBSEND if you do not want to use the default MPI_BSend)
+# on one line 
+# + one line per model giving for the model the total number of procs,
+# the number of procs implied in the coupling and, for MPI2 only, an
+# optional launching argument
+#
+  mpixx
+   nproc_atm nproc_atm
+   nproc_oce nproc_oce
+   nproc_che nproc_che
+ $END
+#########################################################################
+ $NFIELDS
+# This is the total number of fields being exchanged. 
+# For the definition of the fields, see under $STRINGS keyword
+#
+             11
+ $END
+#########################################################################
+ $JOBNAME
+# This is an acronym for this run (3 characters).
+  TOY
+ $END
+##########################################################################
+ $NBMODEL
+# This gives you the number of models running in this experiment +
+# their names (6 characters) + , in option, the maximum Fortran unit
+# number used by each model; 1024 will be used if none are given.
+#
+  3  toyatm   toyoce  toyche  99   99   99
+ $END
+###########################################################################
+ $RUNTIME
+# This gives you the total simulated time for this run in seconds (here 6 days)
+#
+  518400
+ $END
+###########################################################################
+ $INIDATE
+# This is the initial date of the run. This is important only if
+# FILLING analysis is used for a coupling field in the run.
+# The format is YYYYMMDD.
+  ini_date
+ $END
+###########################################################################
+ $MODINFO
+# Indicates if a header is encapsulated within the field brick 
+# in binary restart files for all communication techniques,  
+# (and for coupling field exchanges for PIPE, SIPC and GMEM.
+# (YES or NOT)
+  NOT
+ $END
+###########################################################################
+ $NLOGPRT
+# Index of printing level in output file cplout: 0 = no printing
+#  1 = main routines and field names when treated, 2 = complete output
+  2
+ $END
+###########################################################################
+ $CALTYPE
+# Calendar type :  0      = 365 day calendar (no leap years)
+#                  1      = 365 day, or 366 days for leap years, calendar
+#                  n (>1) = n day month calendar
+# This is important only if FILLING analysis is used for a coupling
+# field in the run.
+#
+  30
+ $END
+###########################################################################
+ $STRINGS
+#
+# The above variables are the general parameters for the experiment.
+# Everything below has to do with the fields being exchanged.
+#
+############################################################################
+#                      OCEAN  --->>>  ATMOS
+#                      --------------------
+# Field 1 : sea surface temperature
+#
+#   First line:
+# 1) and 2) Symbolic names for the field before and after interpolation
+#           (8 characters maximum)
+# 3) Index of field in cf_name_table.txt
+# 4) Exchange frequency for the field in seconds (here 1 day)
+# 5) Number of analysis to be performed
+# 6) Restart input NetCDF file names
+# 7) Field status (EXPORTED, AUXILARY, IGNORED, EXPOUT, IGNOUT, INPUT, OUTPUT)
+#
+SOSSTSST SISUTESU 1 86400  4  fldo1.nc    EXPOUT
+#
+#   Second line:
+# 1) and 2) locator prefix (4 characters) used to read the source and
+# target grid characteristics in grid auxiliary files, 
+# + possibly LAG, SEQ, DEL, XTS additional indices if needed 
+#
+topa  at31 LAG=+14400
+#
+#   Third line:
+# Source grid characteristic (P or R) and number of overlapping grid points
+# + Target grid characteristic (P or R) and number of overlapping grid points
+P  2  P  0
+#
+# List of analyses
+#
+LOCTRANS CHECKIN  MOZAIC  CHECKOUT
+#
+# Specific parameters for each analysis
+# LOCTRANS
+  AVERAGE
+# CHECKIN: indicate computation of global, land and sea field integrals.
+ INT=1
+# Mozaic: 1) mapping filename 2) connected unit 3) dataset rank 4) Maximum
+#         number of neighbors used
+ at31topa      91      2     48
+#
+# CHECKOUT: indicate computation of global, land and sea field integrals.
+ INT=1
+#
+############################################################################
+#
+############################################################################
+# Field 2 : Sea ice extent
+#
+SOICECOV SIICECOV 2  259200  3  fldo1.nc   EXPORTED  
+ topa  at31 LAG=+14400
+P  2  P  0
+#
+CHECKIN  MOZAIC  CHECKOUT
+#
+ INT=1
+ at31topa   91    2   48
+ INT=1
+#
+############################################################################
+#                         --->>>  OCEAN
+#                         -------------
+############################################################################
+#
+# Field 3 : Surface albedo
+#
+SOALBEDO SOALBEDO  17  86400  0  SOALBEDO.nc  INPUT
+# 
+############################################################################
+#                      ATMOSPHERE  --->>>  OCEAN
+#                      -------------------------
+############################################################################
+#
+# Field 4 : Non solar heat flux
+#
+CONSFTOT SONSHLDO 6 86400  6   flda1.nc   EXPOUT
+ at31   topa  LAG=+3600
+P  0  P  2
+#
+ LOCTRANS CHECKIN   MASK EXTRAP   INTERP  CHECKOUT
+ T_MIN
+ INT=1
+ 999999.9
+ NINENN  2 1 1
+ BICUBIC  G    SCALAR
+ INT=1
+#
+############################################################################
+#
+############################################################################
+#
+# Field 5 : Solar heat flux
+#
+COSHFTOT  COSHFTOT   7   86400  0  OUTPUT 
+ at31   at31
+#
+############################################################################
+#
+############################################################################
+#
+# Field 6 : water flux
+#
+COWATFLU SOWAFLDO 29 86400  6  flda1.nc   EXPORTED 
+  at31    topa  LAG=+3600
+P  0  P  2
+#
+LOCTRANS  CHECKIN  MASK EXTRAP  INTERP CHECKOUT
+#
+ ACCUMUL
+ INT=1
+ 999999.9
+ NINENN   2 0 1
+ BICUBIC  G    SCALAR
+ INT=1
+#
+############################################################################
+#
+############################################################################
+#
+# Field 7 : Runoff
+#
+CORUNOFF  SORUNOFF   32  86400    4   flda1.nc  EXPORTED
+  at31   topa  LAG=+3600
+P  0  P  2
+#
+LOCTRANS  CHECKIN  MOZAIC  CHECKOUT
+#
+ ACCUMUL
+ INT=1
+ runoff31   93   1    41
+ INT=1
+#
+#########################################################################
+#
+# Field 8 : zonal wind stress -> ugrid
+#
+COZOTAUX  SOZOTAUX   23  86400   6   flda2.nc    EXPORTED
+  at31     uopa  LAG=+3600
+P  0  P  2
+#
+LOCTRANS CHECKIN  MASK EXTRAP INTERP CHECKOUT
+#
+ AVERAGE
+ INT=1
+ 999.999
+ NINENN  2 0 1
+ BICUBIC  G   VECTOR
+ INT=1
+#
+#########################################################################
+#
+# Field 9 : meridional wind stress -> vgrid
+#
+COMETAUY  SOMETAUY   24  86400  6   flda2.nc  EXPORTED 
+ at31     vopa  LAG=+3600
+P  0  P  2
+#
+LOCTRANS CHECKIN  MASK EXTRAP   INTERP  CHECKOUT
+#
+ AVERAGE
+ INT=1
+ 999.999
+ NINENN  2 0 1
+ BICUBIC  G   VECTOR
+ INT=1
+#
+#########################################################################
+#                 ATMOSPHERE  --->>>  ATMOSPHERIC CHEMISTRY 
+#                 ---------------------------------------------
+############################################################################
+#
+# Field 10 : windmixing power
+#
+COSENHFL  SOSENHFL  37  86400   1  flda3.nc  IGNOUT
+at31  at31 LAG=+3600
+LOCTRANS
+AVERAGE
+#########################################################################
+#                 ATMOSPHERIC CHEMISTRY   --->>>  ATMOSPHERE
+#                 -------------------------------------------
+############################################################################
+#
+# Field 11 :  chemical concentration
+#
+SOTHSHSU  COTHSHSU  49   86400  0  flda4.nc  IGNORED
+at31 at31 LAG=+7200
+#
+############################################################################
+#
+ $END

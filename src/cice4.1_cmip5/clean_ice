@@ -1,0 +1,25 @@
+#! /bin/csh -f
+
+setenv SITE `hostname`
+#Change to your own paths!
+if ($SITE == 'petteri-as') then
+    setenv SYSTEM_USERDIR $HOME/tiede/AusCOM/cice/CICE4.1   # petteri-as
+    setenv SRCDIR $HOME/tiede/AusCOM/cice # petteri-as
+else
+    setenv SYSTEM_USERDIR /short/p66/${USER}/CICE4.1   # vayu
+    setenv SRCDIR $HOME/AusCOM1.0/submodels/cice4.1 # vayu
+endif
+
+
+setenv CBLD   $SRCDIR/bld
+setenv EXEDIR $SYSTEM_USERDIR/rundir4
+setenv OBJDIR $EXEDIR/compile
+
+cd $OBJDIR
+pwd
+
+# Clean compile directory
+gmake -f $CBLD/Makefile clean  || exit 2
+
+cd $EXEDIR
+

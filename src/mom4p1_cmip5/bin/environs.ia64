@@ -1,0 +1,12 @@
+source /opt/modules/default/init/tcsh
+module purge
+module load ifort.9.1.041
+module load icc.9.1.045
+module load idb.9.0.12
+module load scsl-1.5.1.0
+module load totalview_730-0
+module load mpt-1.14
+setenv MALLOC_CHECK_ 0
+setenv MPI_COREDUMP_DEBUGGER `which idb`
+alias gmake gmake -j 8
+

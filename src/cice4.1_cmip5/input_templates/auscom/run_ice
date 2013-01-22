@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+#PBS -S /bin/bash
+#PBS -P p66
+#PBS -q normal
+#PBS -l walltime=11:00:00,ncpus=16,vmem=3GB
+#PBS -N ACCICE
+#PBS -wd
+
+if [ ! -d history ]; then
+    mkdir history
+fi
+if [ ! -d restart ]; then
+    mkdir restart
+fi
+
+export F_RECLUNIT=BYTE
+
+stamp=`date -u '+%y%m%d%H%M%S'`
+export ICE_LOG_FILE=ice.log.${stamp}
+
+export MPI_DSM_DISTRIBUTE
+mpirun -np 16 ../cice16p  > $ICE_LOG_FILE 2>&1
+
+cp -p -f ice_diag.d ice_diag.d.${stamp}
+
+exit 0
+

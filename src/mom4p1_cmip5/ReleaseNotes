@@ -1,0 +1,112 @@
+Dear MOM4p1 community,
+
+We wish to release a patch for the MOM4p1 version originally released
+on 30Sep2007.  This patch provides a complete update to the code and
+tests.  The following release notes provide a summary of the elements
+to the patch.  If these changes do not affect you, then please retain
+your original code base.  Otherwise, we recommend updating when you
+find an opportune time.
+
+We wish you a happy 2008,
+  Stephen Griffies, Niki Zadeh, and the MOM4 team
+
+
+****************************************************************
+MODIFIED CODE for mom4p1_28Dec2007, relative to mom4p1_30sep2007
+
+mom4p1/ocean_core/ocean_advection_velocity.F90
+ A diagnostic for "wt" in the original mom4p1 distribution was
+computed by the division wrho_bt/rho. This calculation may encounter
+divisions by zero.  The updated version computes this diagnostic in a
+do-loop with masking to avoid division by zero.
+
+mom4p1/ocean_core/ocean_grids.F90
+ The indices ioff and joff were missing from some of the grid arrays
+for the mosaic grids.  This mistake caused the static cpp preprocessor
+option MOM4_STATIC_MEMORY to be wrong when using a mosaic grid spec
+file.  NOTE that mosaic grids are still experimental in MOM4p1.
+
+ocean_core/ocean_topog.F90
+ An option was added to modify the kmt array according to nml
+parameters.
+
+ocean_core/ocean_model.F90
+ Change modifies the manner in which the diagnostic tracer
+"irradiance" is initialized.  This change is needed in order to
+correct a bug related to running with prognostic biogeochemistry in
+ocean_topaz.F90.
+
+mom4p1/ocean_core/ocean_obc.F90
+ Peng Yu found a sign error in subroutine phase_speed_MILLER on lines
+4785-4787. The bug fix was reported to the MOM4p1 email list.
+
+original code: 
+r1 = eta(i2,j2,tau) + eta(i1,j1,tau)
+r2 = eta_taum1(i1,j1) + eta_taum1(i,j)
+r3 = eta_taum1(i2,j2) + eta_taum1(i1,j1)
+
+corrected code:
+r1 = eta(i2,j2,tau) - eta(i1,j1,tau)
+r2 = eta_taum1(i1,j1) - eta_taum1(i,j)
+r3 = eta_taum1(i2,j2) - eta_taum1(i1,j1).
+
+The correction is based on the reference "M.J. and Thorpe, A.J.,
+1981. Radiation conditions for the lateral boundaries of limited-area
+numerical models. /Quart. J. R. Met. Soc./ *107*, pp. 615?628".
+
+mom4p1/ocean_tracers/ocean_tracer_advect.F90
+ flux_z in the function advect_tracer_mdppm had
+ two sign errors, which did not cancel.  The result
+ of the errors was spuriously strong gradients, which
+ led to choppy tracer features.  The bug fix corrects
+ these problems.
+
+ocean_tracers/ocean_tracer.F90
+ Move the call to initialize the diagnostic tracer "irradiance" into
+T_diag function.
+
+mom4p1/ocean_bgc/ocmip2_cfc.F90
+ send_data called on the wrong field for one of the diagnostics.
+
+ocean_bgc/ocean_topaz.F90
+ Updated algorithm and corrected bugs from John Dunne. 
+
+mom4p1/ocean_param/ocean_vert_mix_chen.F90
+ Russ Fiedler corrected bugs related to MOM4p1's use of mass based
+rather than volume based equations. There were factors of rho
+incorrect in the original MOM4p1 version of this module. 
+
+mom4p1/ocean_params/sources/ocean_shortwave_gfdl.F90
+ A bug was corrected bug with the Manizza etal optics.  There was a
+spurious extra exponential in the vertical radiation profile.
+
+ocean_diag/ocean_tracer_util.F90
+ Added to printout some more grid information describing points of
+maximum and minimum tracer and thickness.
+
+
+=======================================================================
+
+shared/mpp/include/mpp_do_update_new_ad.h 
+shared/mpp/include/mpp_do_updateV_new_ad.h
+ The original code had lines longer than 132 columns, which fails to
+compile on NEC compilers.
+
+shared/fms/fms_io.F90
+shared/fms/fms.F90
+ Updates for mosaic grids (still experimental in MOM4p1)
+
+=======================================================================
+
+Harper Simmons provided a corrected csh build script for
+test_time_interp_ext. The driver script has been distributed in broken
+form for years.
+
+preprocessing/test_time_interp_ext/test_time_interp_ext.csh
+
+=======================================================================
+
+Martin Schmidt provided an enhancement for postprocessing tool mppnccombine
+which replaces the spurious zeros appearing when masking of land only PEs
+with the appropriate "missing values".
+

@@ -1,0 +1,51 @@
+\newpage
+\chapter{The OASIS3 sources}
+\label{sec_Obtaining}
+%               ----------------------------------
+%
+The sources and data of OASIS3, all related libraries, and TOYCLIM
+coupled model are available from CERFACS CVS server \texttt{alter}
+and from CERFACS anonymous ftp.
+
+The CVS repository is {\tt /home/oasis/PRISMCVS}.  To obtain the CVS
+login and password as well as the most recent OASIS3 tag, please
+contact us (see contact details on the back of the cover page).
+
+Note that OASIS3 is temporarily released without the corresponding
+PRISM Standard Compile Environment and Running Environment (SCE/SRE);
+they will be included when the migration from CVS to Subversion will
+be realized at CERFACS.
+
+OASIS3 directory structure follows the PRISM standard one:
+
+\begin{verbatim}
+ - prism/data/testinterp     data and results for OASIS3 in mode NONE
+             /toyclim        data and results for TOYCLIM coupled model
+               
+ - prism/src/lib/anaisg      GAUSSIAN interpolation library
+                /anaism      SURFMESH interpolation library
+                /clim        CLIM/MPI1-MPI2 communication library
+                /fscint      INTERP interpolation library  
+                /mpp_io      I/O library
+                /NAG_dummies Dummy library for NAG compiler
+                /psmile      PRISM System Model Interface Library
+                /scrip       SCRIPR interpolation library
+                  
+ - prism/src/mod/oasis3/src  OASIS3 main code
+                       /doc  OASIS3 documentation
+                       /util Utilities to compile OASIS3
+
+                /toyatm      TOYCLIM component model 1
+                /toyoce      TOYCLIM component model 2
+                /toyche      TOYCLIM component model 3
+                
+ - prism/util/running/testinterp   environment to test OASIS3 interpolation
+                     /testNONE     (interpolator-only mode NONE)
+                     /toyclim      environment to run the TOYCLIM toymodel
+ 
+\end{verbatim}
+%                              
+% 
+%                  /sxgmem/    GMEM communication library
+%
+%\end{verbatim}

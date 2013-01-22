@@ -1,0 +1,33 @@
+#==============================================================================
+# Makefile macros for mawson.hpsc.csiro.au, a Linux frontend for an NEC SX6
+#==============================================================================
+
+INCLDIR    := -I.
+SLIBS      := 
+ULIBS      := 
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional
+CPPDEFS    := -DNEC_SX
+CFLAGS     := -c -O2
+FIXEDFLAGS :=
+FREEFLAGS  := 
+
+FC         :=  sxmpif90
+
+FFLAGS     := -dw -Cvopt -Wf,"-A idbl4 -pvctl fullmsg -msg o -L fmtlist" -R2
+FFLAGS     := $(FFLAGS) -Wf"-pvctl noassume loopcnt=5000000"
+
+MOD_SUFFIX := mod
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS)
+
+   CPPDEFS :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB) 
+   SLIBS   :=  $(SLIBS)
+
+   INCLDIR := $(INCLDIR) -I/SX/local/netcdf/inst/include-dw-32
+   SLIBS   := $(SLIBS) -L/SX/local/netcdf/inst/lib-dw-32 -lnetcdf
+
+   INCLDIR := $(INCLDIR) $(CPL_INCS)
+   SLIBS   := $(SLIBS) -L$(CPLLIBDIR) -lpsmile.${CHAN} 
+   SLIBS   := $(SLIBS) -L$(CPLLIBDIR) -lmpp_io
+

@@ -1,0 +1,175 @@
+#!/bin/ksh
+#set -x
+######################################################################
+##
+############### User's section #######################################
+##
+## - Define jobnumber
+##  To get a proper result, the jobs have to be executed once each, one 
+##  after the other (i.e. 0, 1, 2, 3, 4 in sequence)
+jobnum=0   # 0, 1, 2, 3, 4
+
+## - Define architecture
+arch=SX          # Linux/SX/ibm_power4 
+chan=MPI2        # MPI1/MPI2
+gridswr=0        # 1 for model writing their grid, 0 if not
+host=`uname -n`
+
+## - Define paths
+cd ../../../..
+prismdir=`pwd`
+inputdir=$prismdir/util/running/toyclim/input
+datadir=$prismdir/data/toyclim
+bindir=$prismdir/$arch/bin
+rundir=$prismdir/util/running/toyclim/work
+
+## - Define names of executables
+oa3_exe=oasis
+atm_exe=toyatm
+che_exe=toyche
+oce_exe=toyoce
+
+## - Define number of processes to run toyatm and toyche
+##   toyoce and oasis3 always have one processus each
+nproc_atm=3
+nproc_oce=1
+nproc_che=3
+
+############### End of user's section ################################
+
+echo ''
+echo '*****************************************************************'
+echo '***    toyclim '$jobnum
+echo ''
+echo 'rundir       :' $rundir
+echo 'inputdir     :' $inputdir
+echo 'datadir      :' $datadir
+echo 'bindir       :' $bindir
+echo 'architecture :' $arch
+echo 'host         : '$host
+echo 'chan         : '$chan
+echo 'run          : '$jobnum
+echo ''
+echo 'toyatm runs on '$nproc_atm 'processes'
+echo 'toyoce runs on '$nproc_oce 'processes'
+echo 'toyche runs on '$nproc_che 'processes'
+echo ''
+######################################################################
+###
+### 1. Copy and modify necessary files depending on job number
+
+# find date
+
+if [ $jobnum = 0 ]; then
+    date=00010101
+elif  [ $jobnum = 1 ]; then
+    date=00010107
+elif  [ $jobnum = 2 ]; then
+    date=00010113
+elif  [ $jobnum = 3 ]; then
+    date=00010119
+elif  [ $jobnum = 4 ]; then
+    date=00010125
+else
+    echo 'EXIT : run can only be start or restart'
+    exit 
+fi
+
+echo 'start date   :' $date
+echo ''
+
+if [ $jobnum = 0 ]; then
+  #
+  # First run : start
+  #
+  rm -fr $rundir
+  mkdir -p $rundir
+
+  cp -f $bindir/oasis3.$chan.x $rundir/$oa3_exe
+  cp -f $bindir/toyoce.$chan.x $rundir/$oce_exe
+  cp -f $bindir/toyatm.$chan.x $rundir/$atm_exe
+  cp -f $bindir/toyche.$chan.x $rundir/$che_exe
+
+  cp -f $inputdir/cf_name_table.txt                                $rundir/.
+  cp -f $datadir/input_toyclim_standard_standard_prism_2-2.tar.gz  $rundir/.
+
+  chmod +x $rundir/$oa3_exe $rundir/$oce_exe $rundir/$atm_exe $rundir/$che_exe
+
+  cd $rundir
+  gunzip input_toyclim_standard_standard_prism_2-2.tar.gz
+  tar xvf input_toyclim_standard_standard_prism_2-2.tar
+  cp input/oasis3/* .
+  if [ $gridswr = 1 ]; then
+      mv grids.nc grids_in.nc
+      mv masks.nc masks_in.nc
+      mv areas.nc areas_in.nc
+  fi
+
+else
+  #
+  # Restart run 
+  # Initial run jobnum=0 must have been done to perform the restart run
+  #
+  rm -f $rundir/*.prt*
+  rm -f $rundir/anaisout
+fi
+
+cd $rundir
+
+### Copy and update of namcouple with date, MPI1/MPI2 and number of procesuss
+  cp -f $inputdir/namcouple      $rundir/namcouple
+ 
+ed $rundir/namcouple <<EOF
+g/mpixx/s/mpixx/$chan/
+g/ini_date/s/ini_date/$date/
+g/nproc_atm/s/nproc_atm/$nproc_atm/
+g/nproc_atm/s/nproc_atm/$nproc_atm/
+g/nproc_oce/s/nproc_oce/$nproc_oce/
+g/nproc_oce/s/nproc_oce/$nproc_oce/
+g/nproc_che/s/nproc_che/$nproc_che/
+g/nproc_che/s/nproc_che/$nproc_che/
+w
+q
+EOF
+
+######################################################################
+###
+### 2. Create qsub script
+
+(( nproc = 1 + $nproc_atm + $nproc_oce + $nproc_che ))
+(( maxnproc_node = 7 ))
+
+  cat <<EOF >$rundir/qsub_toyclim.$arch
+#!/bin/ksh
+#PBS -l cputim_job=0:30:00
+#PBS -l cputim_prc=0:30:00
+#PBS -l memsz_job=${nproc}gb
+#PBS -l memsz_prc=${nproc}gb
+#PBS -l cpunum_job=$nproc
+#PBS -l cpunum_prc=$maxnproc_node
+#PBS -q sxmn
+#PBS -N toyclim
+
+/bin/echo " job started at: " \`date\`
+/bin/echo " ExecutionHost : " \`hostname\`                   # print name of current host
+
+cd $rundir
+
+mpirun -v -np 1 -max_np $nproc $oa3_exe
+
+/bin/echo " job completed at: " \`date\`
+
+exit
+EOF
+
+######################################################################
+###
+### 3. Execute the model
+
+echo 'Submitting the job to queue using qsub'
+qsub $rundir/qsub_toyclim.$arch
+
+echo 'toyclim' $jobnum 'run is executed or submitted to queue.'
+echo 'Results are found in rundir : '$rundir
+
+exit

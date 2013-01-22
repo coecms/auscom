@@ -1,0 +1,32 @@
+#==============================================================================
+# Makefile macros for ac.apac.edu.au, an SGI ALTIX system running Linux
+#==============================================================================
+
+INCLDIR    := -I.
+SLIBS      := 
+ULIBS      := 
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional
+CPPDEFS    := -DNEC_SX
+CFLAGS     := -c -O2
+FIXEDFLAGS := -132
+FREEFLAGS  := 
+
+FC         := ifort
+
+FFLAGS     := -r8 -i4 -O2 -align all -w -ftz -convert big_endian -assume byterecl 
+
+MOD_SUFFIX := mod
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS) -v
+
+   CPPDEFS :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB) -Duse_UM
+   SLIBS   :=  $(SLIBS) -lmpi
+
+   INCLDIR := $(INCLDIR) -I/opt/netcdf/3.6.2/Intel-9.1/include
+   SLIBS   := $(SLIBS) -L/opt/netcdf/3.6.2/Intel-9.1/lib -lnetcdf
+
+   INCLDIR := $(INCLDIR) $(CPL_INCS)
+   SLIBS   := $(SLIBS) -L$(CPLLIBDIR) -lpsmile.${CHAN} 
+   SLIBS   := $(SLIBS) -L$(CPLLIBDIR) -lmpp_io -L/opt/netcdf/3.6.2/Intel-9.1/lib -lnetcdf
+   #B: as for cice4, netcdf lib MUST be put behind the other libs...

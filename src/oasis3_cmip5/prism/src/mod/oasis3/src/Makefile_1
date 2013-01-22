@@ -1,0 +1,79 @@
+SRCS1 =	$(shell find ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC)) -name '*.F90' -print)
+OBJS1 =	$(patsubst ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC))/%.F90,  %.o, $(SRCS1))
+
+SRCS2 =  $(shell find ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC)) -name '*.f90' -print)
+OBJS2 =  $(patsubst ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC))/%.f90, %.o, $(SRCS2))
+
+SRCS3 =  $(shell find ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC)) -name '*.F' -print)
+OBJS3 =  $(patsubst ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC))/%.F, %.o, $(SRCS3))
+
+SRCS4 =  $(shell find ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC)) -name '*.f' -print)
+OBJS4 =  $(patsubst ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC))/%.f, %.o, $(SRCS4))
+
+SRCS5 =  $(shell find ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC)) -name '*.c' -print)
+OBJS5 =  $(patsubst ../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC))/%.c, %.o, $(SRCS5))
+
+VPATH = .:../../../../src/mod/$(MODEL_DIR)/$(strip $(SRC)):\
+	  ../../../../src/mod/$(MODEL_DIR)/include:\
+	  ../../lib/clim.${CHAN}:\
+	  ../../../lib/$(MODEL_DIR):\
+	  ../../../lib:\
+	  $(NETCDF_INCLUDE):$(MPI_INCLUDE):$(SYS_INCLUDE):\
+	  ../../../../src/mod/$(MODEL_DIR)/make_dummies
+
+LIBRARY	= ../../../lib/$(MODEL_DIR)/lib$(MODLIB).a
+
+PROG =  ../../../bin/$(EXEC).x
+
+INCLS   = -I../../../../src/mod/$(MODEL_DIR)/include \
+	  -${I4mods}../../lib/clim.${CHAN}
+
+INCLSC  = -I../../../../src/mod/$(MODEL_DIR)/include
+
+clean:
+	rm -f $(LIBRARY)
+	rm -f i.* *.o *.mod
+	rm -f Top_Makefile_*
+
+all: $(PROG)
+
+lib: $(LIBRARY)
+
+$(PROG): $(DEPLIBS) $(LIBRARY)
+	$(F90) $(LDFLAGS) -o $@ $(MAINPRG).o $(LIBS) $(LIBS)
+
+$(LIBRARY): $(OBJS1) $(OBJS2) $(OBJS3) $(OBJS4) $(OBJS5)
+	$(AR) $(ARFLAGS) $(LIBRARY) *.o
+	$(AR) $(ARFLAGS) $(LIBRARY) \
+	../../lib/clim.${CHAN}/mod_kinds_oasis.o   \
+	../../lib/clim.${CHAN}/mod_parameter.o  \
+	../../lib/clim.${CHAN}/mod_timestep.o  \
+	../../lib/clim.${CHAN}/mod_string.o  \
+	../../lib/clim.${CHAN}/mod_unitncdf.o  \
+	../../lib/clim.${CHAN}/mod_kinds_oasis.o  \
+	../../lib/clim.${CHAN}/mod_hardware.o  \
+	../../lib/clim.${CHAN}/mod_calendar.o  \
+	../../lib/clim.${CHAN}/mod_label.o
+
+.SUFFIXES:
+.SUFFIXES: .o .c .f .F .f90 .F90
+
+%.o: %.F90
+	$(F90) $(F90FLAGS) $(INCLS)  -c   $<
+
+%.o: %.f90
+	$(f90) $(f90FLAGS) $(INCLS)  -c   $<
+
+%.o: %.F
+	$(F) $(FFLAGS) $(INCLS)  -c   $<
+
+%.o: %.f
+	$(f) $(fFLAGS) $(INCLS)  -c   $<
+
+%.o: %.c
+	$(CC) $(CCFLAGS) $(INCLSC) -c   $<
+
+#
+# All dependencies ...
+#
+# Dont add anything behind this line

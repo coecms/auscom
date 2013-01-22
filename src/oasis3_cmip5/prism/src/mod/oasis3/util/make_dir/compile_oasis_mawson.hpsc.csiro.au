@@ -1,0 +1,33 @@
+#!/bin/tcsh
+#
+# Purpose
+# -------
+# Compiles OASIS3 on mawson.hpsc.csiro.au
+#
+# History
+# -------
+# 2008 Jul 2	Steven Phipps	Original version
+# 2008 Jul 8	Steven Phipps	Add section to set up cross environment
+
+# Set up the cross environment
+source /SX/local/Modules/3.1.6/init/csh
+module unload sxcross   # Necessary in case sxcross already loaded
+module load sxcross
+
+# Set the name of the platform on which we are working 
+setenv PLATFORM mawson.hpsc.csiro.au
+echo ""
+echo PLATFORM = $PLATFORM
+echo ""
+
+# Set the path to the top-level PRISM directory
+setenv PRISMHOME $cwd:h:h:h:h:h:h/prism
+echo ""
+echo PRISMHOME = $PRISMHOME
+echo ""
+
+# Compile OASIS3
+echo ""
+echo Compiling OASIS3 ...
+echo ""
+make -f TopMakefileOasis3
