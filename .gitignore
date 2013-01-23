@@ -1,0 +1,4 @@
+bin/oasis3_MPI1.exe-*
+submodels/oasis3_cmip5/prism/Linux/
+submodels/oasis3_cmip5/prism/compile/COMP.err
+submodels/oasis3_cmip5/prism/compile/COMP.log
