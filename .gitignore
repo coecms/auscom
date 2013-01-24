@@ -1,4 +1,12 @@
 bin/oasis3_MPI1.exe-*
+bin/cice4.1_access.exe-*
+bin/matm_MPI1.*
+bin/mom4_MPI1.exe.*
+bin/mppnccombine.*
+
 submodels/oasis3_cmip5/prism/Linux/
 submodels/oasis3_cmip5/prism/compile/COMP.err
 submodels/oasis3_cmip5/prism/compile/COMP.log
+submodels/cice4.1_cmip5/compile/obj_access_6p/
+submodels/matm/compile/build_MPI1_nt62/
+submodels/mom4p1_cmip5/compile/build_MPI1/
