@@ -75,6 +75,9 @@ set DATESTR = `date +%Y%m%d`
 #          (mainly range of temeperature and transports for different cmip5 units) 
 set exe           = mom4_${CHAN}.exe.${DATESTR}.VAYU
 
+# WHy do they keep making new exe names like this??
+set exe           = mom4_${CHAN}.VAYU
+
 #"pointer" version (Russ's original code)
 #set exe           = mom4p1_${CHAN}.exe-20110328-russ
 #

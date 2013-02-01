@@ -48,7 +48,7 @@ source $AusCOMHOME/bin/environs.$PLATFORM  # environment variables and loadable 
 endif
 #------------------------------------------------------------------
 # complie the calendar tool for AusCOM run time use by runscript
-ifort -o $AusCOMHOME/bin/calendar.exe $AusCOMHOME/bin/calendar.F90
+ifort -o $AusCOMHOME/bin/calendar.VAYU $AusCOMHOME/bin/calendar.F90
 
 # Compile OASIS3
 echo ""
@@ -56,4 +56,5 @@ echo Compiling OASIS3 ...
 echo ""
 make -f TopMakefileOasis3
 
-mv $PRISMHOME/Linux/bin/oasis3.MPI1.x $AusCOMHOME/bin/oasis3_MPI1.exe-`date +%Y%h%d%H%M%S`
+#mv $PRISMHOME/Linux/bin/oasis3.MPI1.x $AusCOMHOME/bin/oasis3_MPI1.exe-`date +%Y%h%d%H%M%S`
+mv $PRISMHOME/Linux/bin/oasis3.MPI1.x $AusCOMHOME/bin/oasis3_MPI1.VAYU

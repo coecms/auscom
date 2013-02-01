@@ -94,6 +94,8 @@ setenv EXE cice4.1_access.exe-${nproc}p-20110318
 setenv DATESTR `date +%Y%m%d`
 setenv EXE cice4.1_access.exe-${nproc}p-${DATESTR}
 
+# wtf is this EXE madness
+setenv EXE cice_${CHAN}.VAYU_${nproc}p
 
 ### Where this model is compiled
 setenv OBJDIR $SRCDIR/compile/obj_access_{$nproc}p

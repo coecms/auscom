@@ -1,8 +1,9 @@
-bin/oasis3_MPI1.exe-*
-bin/cice4.1_access.exe-*
+bin/oasis3_MPI1.VAYU
+bin/cice_MPI1.VAYU_*
 bin/matm_MPI1.*
-bin/mom4_MPI1.exe.*
-bin/mppnccombine.*
+bin/mom4_MPI1.VAYU
+bin/mppnccombine.VAYU
+bin/calendar.VAYU
 
 submodels/oasis3/prism/Linux/
 submodels/oasis3/prism/compile/COMP.err
