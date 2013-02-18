@@ -70,7 +70,8 @@ endif
 ### Location and name of the generated exectuable
 setenv DATESTR `date +%Y%m%d`
 setenv BINDIR $SYSTEMDIR/bin
-setenv EXE cice_${CHAN}.${DATESTR}.VAYU_${nproc}p
+#setenv EXE cice_${CHAN}.${DATESTR}.VAYU_${nproc}p
+setenv EXE cice_${CHAN}.VAYU_${nproc}p
 
 ### Where this model is compiled
 setenv OBJDIR $SRCDIR/compile/build_${CHAN}_{$nproc}p

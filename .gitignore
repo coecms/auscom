@@ -8,6 +8,6 @@ bin/calendar.VAYU
 submodels/oasis3/prism/Linux/
 submodels/oasis3/prism/compile/COMP.err
 submodels/oasis3/prism/compile/COMP.log
-submodels/cice4.1/compile/obj_access_6p/
+submodels/cice4.1/compile/build_MPI1_6p
 submodels/matm/compile/build_MPI1_nt62/
 submodels/mom4p1/compile/build_MPI1/

@@ -7,7 +7,7 @@ cd submodels/oasis3/prism/compile
 cd ${BASEDIR}
 
 cd submodels/cice4.1/compile
-./comp_access_cice.VAYU.nP 6
+./comp_auscom_cice.VAYU.nP 6
 cd ${BASEDIR}
 
 cd submodels/matm/compile
