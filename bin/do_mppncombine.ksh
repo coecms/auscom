@@ -4,19 +4,12 @@
 # usage: qsub do_mppncombine.ksh -v sdir=$sdir,tdir=$tdir,idate=$enddate    #
 #									    #
 #############################################################################
-#PBS -P p66
-###PBS -P p73
-###PBS -q normal
-###PBS -q express
+#PBS -P v45
 #PBS -q copyq
 #PBS -l walltime=0:15:00
-###PBS -l vmem=2GB
-#PBS -l vmem=400MB
+#PBS -l vmem=2GB
 #PBS -l ncpus=1
-#PBS -l software=vampir
-#PBS -l other=rms
-#PBS -M dave.bi@csiro.au
-#PBS -N do-mppncombing
+#PBS -N do-mppncombine
 #PBS -wd
 #############################################################################
 date
@@ -44,10 +37,13 @@ else
 fi
 
 mv $datadir/*.nc.???? .
+mv $datadir/ocean_scalar.nc ./ocean_scalar.nc-${enddate}
 
 # combine netcdf files
 for histfile in `ls *.nc.0000`; do
   newfile=${histfile%.*}              #drop the appendix '.0000'!
+  #SJM#$bindir/mppnccombine.exe -v -r $newfile ${newfile}.????
+  #/home/599/sjm599/AusCOM1.0/bin/mppnccombine.exe -v -r $newfile ${newfile}.????
   $bindir/mppnccombine.exe -v -r $newfile ${newfile}.????
 done
 for histfile in `ls ocean*.nc`; do
