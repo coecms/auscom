@@ -32,19 +32,22 @@ if (( $badfile == 0 )); then
   echo 'Good, no leftover! '
 else
   for badfile in `ls *.nc *.nc.????`; do
-    \rm $badfile
+    rm $badfile
   done 
 fi
 
 mv $datadir/*.nc.???? .
-mv $datadir/ocean_scalar.nc ./ocean_scalar.nc-${enddate}
+# CAWCR assumes ocean_scalar.nc always exists?
+if [ -f ${datadir}/ocean_scalar.nc ]; then
+    mv $datadir/ocean_scalar.nc ./ocean_scalar.nc-${enddate}
+fi
 
 # combine netcdf files
 for histfile in `ls *.nc.0000`; do
   newfile=${histfile%.*}              #drop the appendix '.0000'!
   #SJM#$bindir/mppnccombine.exe -v -r $newfile ${newfile}.????
   #/home/599/sjm599/AusCOM1.0/bin/mppnccombine.exe -v -r $newfile ${newfile}.????
-  $bindir/mppnccombine.exe -v -r $newfile ${newfile}.????
+  $bindir/mppnccombine.VAYU -v -r $newfile ${newfile}.????
 done
 for histfile in `ls ocean*.nc`; do
   mv $histfile ${histfile}-${enddate}
