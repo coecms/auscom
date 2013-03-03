@@ -1,3 +1,14 @@
+# Model Output
+output/*
+
+# Default experiment
+exp/cnyf2-sw1/cnyf2-sw1.[oe]*
+exp/cnyf2-sw1/cnyf2-sw1.date
+exp/cnyf2-sw1/cnyf2-sw1.log
+exp/cnyf2-sw1/Running.dir
+exp/cnyf2-sw1/.swp
+
+# Binaries
 bin/oasis3_MPI1.VAYU
 bin/cice_MPI1.VAYU_*
 bin/matm_MPI1.*
@@ -5,6 +16,7 @@ bin/mom4_MPI1.VAYU
 bin/mppnccombine.VAYU
 bin/calendar.VAYU
 
+# Object Code
 submodels/oasis3/prism/Linux/
 submodels/oasis3/prism/compile/COMP.err
 submodels/oasis3/prism/compile/COMP.log
