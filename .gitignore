@@ -1,6 +1,10 @@
 # Model Output
 output/*
 
+# Input fields
+forcing
+input
+
 # Default experiment
 exp/cnyf2-sw1/cnyf2-sw1.[oe]*
 exp/cnyf2-sw1/cnyf2-sw1.date
