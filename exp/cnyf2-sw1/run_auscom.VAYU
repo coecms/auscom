@@ -137,7 +137,7 @@ if [[ $DEBUG = "yes" ]]; then
     inimonth=1;	finalmonth=1;		typeset -Z2 inimonth finalmonth
     iniday=1;	finalday=4;		typeset -Z2 iniday   finalday
 else
-    iniyear=1;	finalyear=3;		typeset -Z4 iniyear  finalyear
+    iniyear=1;	finalyear=1;		typeset -Z4 iniyear  finalyear
     inimonth=1;	finalmonth=12;		typeset -Z2 inimonth finalmonth
     iniday=1;	finalday=31;		typeset -Z2 iniday   finalday
 fi
