@@ -1,5 +1,18 @@
 #!/bin/bash
-rm -rf /short/v45/mxw157/auscom/OUTPUT/new_auscom/cnyf2-sw1
+
+# Path guessing
+cwd=$(pwd)
+cwd=${cwd%/}            # Strip trailing slash
+
+expt_name=${cwd##*/}
+
+tmp=${cwd%/*}
+tmp=${tmp%/*}
+model_name=${tmp##*/}
+
+set -x
+rm -rf /short/v45/${USER}/auscom/OUTPUT/${model_name}/${expt_name}
+rm -rf ../../output/cnyf2-sw1
 rm -f Running.dir
 rm -f cnyf2-sw1.e*
 rm -f cnyf2-sw1.o*
