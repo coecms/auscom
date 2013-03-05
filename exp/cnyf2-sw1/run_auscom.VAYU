@@ -32,7 +32,7 @@
 # 0. Prologue
 #
 #############################################################################
-#PBS -P e14
+#PBS -P v45
 #PBS -W group_list=v45
 #PBS -q normal
 #PBS -l walltime=4:00:00
@@ -733,8 +733,9 @@ iceruf=0.0005
 
 #cp -f $inputdir/cice/cice4.1_in.nml.sis2.output_every_timestep	cice_in.nml
 #cp /home/599/sjm599/AusCOM1.0/input/cice/cice4.1_in.nml.sis2_daily        cice_in.nml
-cp /short/p66/dhb599/AusCOM2.0/input/cice/cice4.1_in.nml.sis2_new	cice_in.nml
+#cp /short/p66/dhb599/AusCOM2.0/input/cice/cice4.1_in.nml.sis2_new	cice_in.nml
 #cp /home/599/sjm599/AusCOM1.0/input/cice/cice4.1_in.nml.sis2_new	cice_in.nml
+cp ${inputdir}/cice/cice4.1_in.nml.sis2_new     cice_in.nml
 
 ed cice_in.nml <<eof
 g/#DAYS_per_year/s/#DAYS_per_year/${days_this_year}/
