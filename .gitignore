@@ -15,6 +15,8 @@ bin/cice_MPI1.VAYU_*
 bin/matm_MPI1.*
 bin/mom4_MPI1.VAYU
 bin/mppnccombine.VAYU
+bin/mom5_MPI1.vayu
+bin/mppnccombine.vayu
 bin/calendar.VAYU
 
 # Object Code
@@ -24,3 +26,4 @@ submodels/oasis3/prism/compile/COMP.log
 submodels/cice4.1/compile/build_MPI1_6p
 submodels/matm/compile/build_MPI1_nt62/
 submodels/mom4p1/compile/build_MPI1/
+submodels/mom5/compile/build_MPI1/

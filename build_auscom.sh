@@ -17,3 +17,7 @@ cd ${BASEDIR}
 cd submodels/mom4p1/compile
 ./comp_auscom_mom4p1_cfc.VAYU
 cd ${BASEDIR}
+
+cd submodels/mom5/compile
+./mom5_compile.csh
+cd ${BASEDIR}

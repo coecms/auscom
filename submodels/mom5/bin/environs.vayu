@@ -1,0 +1,8 @@
+         source /opt/Modules/default/init/tcsh
+         module purge
+         module load intel-fc/13.1.117
+         module load intel-cc/13.1.117
+         module load netcdf/4.2.1.1
+         module load openmpi/1.6.3
+         setenv NC_BLKSZ 64K
+         setenv mpirunCommand  "mpirun -np"
