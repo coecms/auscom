@@ -5,7 +5,7 @@
 # Compiles OASIS3 on xe.nci.org.au
 
 # Set the name of the platform on which we are working 
-setenv PLATFORM vayu.nci.org.au
+setenv PLATFORM raijin.nci.org.au
 echo ""
 echo PLATFORM = $PLATFORM
 echo ""
@@ -23,24 +23,6 @@ echo ""
 echo AusCOMHOME = $AusCOMHOME
 echo "" 
  
-if( $PLATFORM == "xe.nci.org.au" ) then
-   echo $MODULE_VERSION
-   source /opt/Modules/3.2.6/init/csh
-   alias
-   module purge
-   module load intel-cc/11.0.074
-   module load intel-fc/11.0.074
-   module load netcdf/3.6.3
-   #module load openmpi/1.3.3
-   #default is openmpi/1.4.3
-
-   # required on xe for mpicc wrapper to fet the correct cc compiler
-   setenv OMPI_CC icc
-   mpicc -showme
-else
-#  echo Wrong machine! Use the correct script for $PLATFORM !
-#  exit
-#
 # Users must ensure the correct environment file exists for their platform.
 #
 source $AusCOMHOME/bin/environs.$PLATFORM  # environment variables and loadable modules
