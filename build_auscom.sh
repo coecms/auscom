@@ -3,11 +3,11 @@
 
 BASEDIR=$(pwd)
 cd submodels/oasis3/prism/compile
-./comp_oasis325.VAYU
+./comp_oasis325.RAIJIN
 cd ${BASEDIR}
 
 cd submodels/cice4.1/compile
-./comp_auscom_cice.VAYU.nP 6
+./comp_auscom_cice.RAIJIN.nP 6
 cd ${BASEDIR}
 
 cd submodels/matm/compile

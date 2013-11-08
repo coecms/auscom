@@ -5,7 +5,7 @@
 # Compiles OASIS3 on xe.nci.org.au
 
 # Set the name of the platform on which we are working 
-setenv PLATFORM vayu.nci.org.au
+setenv PLATFORM raijin.nci.org.au
 echo ""
 echo PLATFORM = $PLATFORM
 echo ""
@@ -30,7 +30,7 @@ source $AusCOMHOME/bin/environs.$PLATFORM  # environment variables and loadable 
 endif
 #------------------------------------------------------------------
 # complie the calendar tool for AusCOM run time use by runscript
-ifort -o $AusCOMHOME/bin/calendar.VAYU $AusCOMHOME/bin/calendar.F90
+ifort -o $AusCOMHOME/bin/calendar.RAIJIN $AusCOMHOME/bin/calendar.F90
 
 # Compile OASIS3
 echo ""
@@ -39,4 +39,4 @@ echo ""
 make -f TopMakefileOasis3
 
 #mv $PRISMHOME/Linux/bin/oasis3.MPI1.x $AusCOMHOME/bin/oasis3_MPI1.exe-`date +%Y%h%d%H%M%S`
-mv $PRISMHOME/Linux/bin/oasis3.MPI1.x $AusCOMHOME/bin/oasis3_MPI1.VAYU
+mv $PRISMHOME/Linux/bin/oasis3.MPI1.x $AusCOMHOME/bin/oasis3_MPI1.RAIJIN

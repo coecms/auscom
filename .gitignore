@@ -10,12 +10,13 @@ exp/cnyf2-sw1/Running.dir
 exp/cnyf2-sw1/.swp
 
 # Binaries
-bin/oasis3_MPI1.VAYU
-bin/cice_MPI1.VAYU_*
-bin/matm_MPI1.*
-bin/mom4_MPI1.VAYU
-bin/mppnccombine.VAYU
-bin/calendar.VAYU
+bin/oasis3_MPI?.*
+bin/cice_MPI?.*
+bin/matm_MPI?.*
+bin/mom4_MPI?.*
+bin/mppnccombine.*
+bin/calendar.*
+!bin/calender.F90
 
 # Object Code
 submodels/oasis3/prism/Linux/
