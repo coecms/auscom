@@ -106,8 +106,8 @@ echo mppnccombine: $mppnccombine
 #
 # compile mppnccombine.c, needed only if $npes > 1
 if ( $MPI && ! -f $mppnccombine ) then
-mpicc -O -o $mppnccombine -I$(NETCDF)/include -L$(NETCDF)/lib \
-            $code_dir/postprocessing/mppnccombine.c -lnetcdf -lnetcdff
+mpicc -O -o $mppnccombine -I${NETCDF}/include -L${NETCDF}/lib \
+            $code_dir/postprocessing/mppnccombine.c -lnetcdf
 
 endif
 
