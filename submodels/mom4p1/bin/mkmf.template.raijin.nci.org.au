@@ -7,8 +7,8 @@ FFLAGS_BASE = -V -what -fno-alias -stack_temps -safe_cray_ptr -ftz -i_dynamic -a
 FFLAGS_REPRO = -fltconsistency
 FFLAGS_DEBUG = -check -warn -warn noerrors -debug variable_locations -inline_debug_info -traceback
 #FFLAGS = $(FFLAGS_BASE) -O2 -nowarn -fpp -I$(NETCDF)/include/Intel
-FC = mpif90
-CC = mpicc
+FC = ifort
+CC = icc
 
 CFLAGS = -V -O2 -w -D__IFC -I$(NETCDF)/include
 LD = $(FC)
@@ -22,7 +22,7 @@ CPLLIBS   = -L$(CPLLIBDIR) -lpsmile.${CHAN} -L$(CPLLIBDIR) -lmpp_io
 CPLINCDIR = ${AusCOMHOME}/submodels/oasis3/prism/Linux/build/lib
 CPLINCS   = -I$(CPLINCDIR)/psmile.${CHAN}
 
-LDFLAGS        = -L$(NETCDF)/lib -lnetcdf -lnetcdff -lmpi $(CPLLIBS)
+LDFLAGS        = -L$(NETCDF)/lib -lnetcdf -lnetcdff $(OMPI_F90LIBS) $(CPLLIBS)
 FFLAGS = $(FFLAGS_BASE) -O2 -no-vec -nowarn -fpp -I$(NETCDF)/include $(CPLINCS)
 #FFLAGS = $(FFLAGS_BASE) -O0 -g -no-vec -nowarn -fpp -I$(NETCDF)/include/Intel $(CPLINCS)
 

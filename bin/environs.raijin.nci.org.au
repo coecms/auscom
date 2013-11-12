@@ -5,4 +5,4 @@ module load intel-cc/13.5.192
 module load intel-fc/13.5.192
 module load intel-mkl/13.5.192
 module load netcdf/3.6.3
-module load openmpi/1.6.5-mlx
+module load openmpi/1.6.5
